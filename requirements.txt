@@ -1,0 +1,6 @@
+tensorflow
+numpy
+pillow
+pyyaml
+pyfakewebcam
+opencv-python
