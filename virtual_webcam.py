@@ -56,7 +56,7 @@ def load_config(oldconfig):
     return config
 
 def load_replacement_bgs(replacement_bgs, image_name,
-        height, width, blur_background_value=0):
+        height, width, image_filters=[]):
     """
         Load and preprocess the background image(s)
         image_name must be either the path to an image file or
@@ -89,16 +89,22 @@ def load_replacement_bgs(replacement_bgs, image_name,
 
             config["replacement_mtime"] = os.stat(image_name).st_mtime
 
-            if blur_background_value:
-                for i in range(len(replacement_bgs)):
-                    replacement_bgs[i] = cv2.blur(replacement_bgs[i],
-                        (blur_background_value, blur_background_value))
+            for i in range(len(replacement_bgs)):
+                for image_filter in image_filters:
+                    replacement_bgs[i] = image_filter(replacement_bgs[i])
             print("Finished loading background")
 
         return replacement_bgs
 
     except OSError:
         return None
+
+def filter_grayscale(frame):
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    return cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+
+def filter_blur(frame, intensity):
+    return cv2.blur(frame, (intensity, intensity))
 
 ### Global variables ###
 
@@ -177,23 +183,29 @@ def mainloop():
         frame = cv2.flip(frame, 0)
 
     blur_background_value = config.get("blur_background", 0)
+    grayscale_background = config.get("grayscale_background", False)
+    image_filters = []
+    if blur_background_value:
+        image_filters.append(
+            lambda frame: filter_blur(frame, blur_background_value))
+    if grayscale_background:
+        image_filters.append(filter_grayscale)
+
     image_name = config.get("image_name", "background.jpg")
     replacement_bgs = load_replacement_bgs(replacement_bgs, image_name,
-        height, width, blur_background_value)
+        height, width, image_filters)
 
     frame = frame[...,::-1]
     if replacement_bgs is None:
-        if not blur_background_value:
-            # No background and no blurring
-            # => return the frame unchanged
+        if len(image_filters) == 0:
             fakewebcam.schedule_frame(frame)
             return
-        elif blur_background_value:
-            # return a blurred frame by copying the blurred frame into the
-            # background image array
-            replacement_bgs = frame
-            replacement_bgs = [cv2.blur(replacement_bgs,
-                (blur_background_value, blur_background_value))]
+
+        replacement_bg = frame
+        for image_filter in image_filters:
+            replacement_bg = image_filter(replacement_bg)
+
+        replacement_bgs = [replacement_bg]
 
     input_height, input_width = frame.shape[:2]
 

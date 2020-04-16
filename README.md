@@ -43,15 +43,16 @@ except for `width` and `height` as the webcam must be reinitialized to change th
 - `blur`: Blur factor for the mask to smooth the edges.
 - `dilate`: Number of pixels the mask is shrunk to remove spots.
 - `erode`: Number of pixels the mask is grown after shrinking to capture the full body image again.
-- `blur_background`: Blur factor for the background. This is mostly useful without a virtual
+- `blur_background`: Blur factor for the background. This is mostly useful without a virtual.
+- `grayscale_background`: Convert the background to greyscale.
   background, but may be applied to background images.
 - `image_name`: Filename of an image file or a directory containing images for an animation.
 - `virtual_video_device`: The virtual video device, e.g., `/dev/video2`.
 - `real_video_device`: The video device of your webcam, e.g. `/dev/video0`.
 - `average_masks`: Number of masks to average. A higher number will result in afterimages,
   a smaller number in flickering at the boundary between foreground and background.
-- `flip_horizontal`: Flip the image horizontally.
-- `flip_vertical`: Flip the image vertically.
+- `flip_horizontal`: Flip the input image horizontally.
+- `flip_vertical`: Flip the input image vertically.
 - `background_interpolation_method`: Interpolation method to use. Currently supported methods
   are `BILINEAR` and `NEAREST`. Usually `BILINEAR` is an good option, but for using pixel art
   backgrounds `NEAREST` may look better.
