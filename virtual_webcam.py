@@ -3,7 +3,6 @@
 import tensorflow as tf
 import cv2
 import sys
-from PIL import Image
 import tfjs_graph_converter as tfjs
 import numpy as np
 import os
@@ -231,11 +230,8 @@ def mainloop():
     target_height, target_width = to_input_resolution_height_and_width(
         internal_resolution, output_stride, input_height, input_width)
 
-    img = Image.fromarray(frame)
-    resized_frame = tf.keras.preprocessing.image.img_to_array(img, dtype=np.float32)
-
-    padT, padB, padL, padR = calc_padding(resized_frame, target_height, target_width)
-    resized_frame = tf.image.resize_with_pad(resized_frame, target_height, target_width,
+    padT, padB, padL, padR = calc_padding(frame, target_height, target_width)
+    resized_frame = tf.image.resize_with_pad(frame, target_height, target_width,
             method=tf.image.ResizeMethod.BILINEAR)
 
     resized_height, resized_width = resized_frame.shape[:2]
