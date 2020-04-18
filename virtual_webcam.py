@@ -16,6 +16,7 @@ from bodypix_functions import calc_padding
 from bodypix_functions import scale_and_crop_to_input_tensor_shape
 from bodypix_functions import to_input_resolution_height_and_width
 from bodypix_functions import to_mask_tensor
+import filters
 
 # Default config values
 config = {
@@ -99,13 +100,6 @@ def load_replacement_bgs(replacement_bgs, image_name,
     except OSError:
         return None
 
-def filter_grayscale(frame):
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    return cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-
-def filter_blur(frame, intensity):
-    return cv2.blur(frame, (intensity, intensity))
-
 ### Global variables ###
 
 # Background frames and the current index in the list
@@ -187,9 +181,9 @@ def mainloop():
     image_filters = []
     if blur_background_value:
         image_filters.append(
-            lambda frame: filter_blur(frame, blur_background_value))
+            lambda frame: filters.blur(frame, blur_background_value))
     if grayscale_background:
-        image_filters.append(filter_grayscale)
+        image_filters.append(filters.grayscale)
 
     image_name = config.get("image_name", "background.jpg")
     replacement_bgs = load_replacement_bgs(replacement_bgs, image_name,
