@@ -47,6 +47,10 @@ except for `width` and `height` as the webcam must be reinitialized to change th
 - `foreground_filters`: Filters applied to the detected foreground.
 - `result_filters`: Filters applied to the result image.
 - `background_image`: Filename of an image file or a directory containing images for an animation.
+- `overlay_image`: Filename of an image file with alpha channel (transparency) or a directory
+  containing images for an animation.
+- `background_fps`: Maximal framerate for the animation of the background image.
+- `overlay_fps`: Maximal framerate for the animation of the overlay image.
 - `virtual_video_device`: The virtual video device, e.g., `/dev/video2`.
 - `real_video_device`: The video device of your webcam, e.g. `/dev/video0`.
 - `average_masks`: Number of masks to average. A higher number will result in afterimages,
