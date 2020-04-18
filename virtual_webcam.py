@@ -55,50 +55,53 @@ def load_config(oldconfig):
         pass
     return config
 
-def load_replacement_bgs(replacement_bgs, image_name,
-        height, width, image_filters=[]):
+def load_images(images, image_name, height, width, imageset_name,
+        interpolation_method="NEAREST", image_filters=[]):
     """
-        Load and preprocess the background image(s)
+        Load and preprocess image(s)
         image_name must be either the path to an image file or
         the path to an folder containing multiple files that should be
         played as animation.
+        imageset_name is an unique name that is used in the config to store
+        values like the mtime
         The function only reloads the image(s) when the mtime of the file
         or folder is changed.
     """
     try:
         replacement_stat = os.stat(image_name)
-        if replacement_stat.st_mtime != config.get("replacement_mtime"):
-            print("Loading background {0} ...".format(image_name))
-            replacement_bgs_idx = 0
+        if replacement_stat.st_mtime != config.get(imageset_name + "_mtime"):
+            print("Loading images {0} ...".format(image_name))
+            config[imageset_name + "_idx"] = 0
             filenames = [image_name]
             if stat.S_ISDIR(replacement_stat.st_mode):
                 filenames = glob.glob(filenames[0] + "/*.*")
                 if not filenames:
                     return None
 
-            replacement_bgs = []
+            images = []
             for filename in filenames:
-                replacement_bg_raw = cv2.imread(filename)
+                image_raw = cv2.imread(filename, cv2.IMREAD_UNCHANGED)
                 interpolation_method = cv2.INTER_LINEAR
-                if config.get("background_interpolation_method") == "NEAREST":
+                if interpolation_method == "NEAREST":
                     interpolation_method = cv2.INTER_NEAREST
-                replacement_bg = cv2.resize(replacement_bg_raw, (width, height),
+                image = cv2.resize(image_raw, (width, height),
                     interpolation=interpolation_method)
-                replacement_bg = replacement_bg[...,::-1]
-                replacement_bgs.append(replacement_bg)
+                # BGR to RGB
+                image[:,:,0], image[:,:,2] = image[:,:,2], image[:,:,0].copy()
+                images.append(image)
 
-            config["replacement_mtime"] = os.stat(image_name).st_mtime
+            config[imageset_name + "_mtime"] = os.stat(image_name).st_mtime
 
-            for i in range(len(replacement_bgs)):
+            for i in range(len(images)):
                 for image_filter in image_filters:
                     try:
-                        replacement_bgs[i] = image_filter(replacement_bgs[i])
+                        images[i] = image_filter(images[i])
                     except TypeError:
                         # caused by a wrong number of arguments in the config
                         pass
             print("Finished loading background")
 
-        return replacement_bgs
+        return images
 
     except OSError:
         return None
@@ -135,7 +138,9 @@ def get_imagefilters(filter_list):
 # Background frames and the current index in the list
 # when the background is a animation
 replacement_bgs = None
-replacement_bgs_idx = 0
+
+# Overlays
+overlays = None
 
 # The last mask frames are kept to average the actual mask
 # to reduce flickering
@@ -194,7 +199,7 @@ output_tensor_names = tfjs.util.get_output_tensors(graph)
 input_tensor = graph.get_tensor_by_name(input_tensor_names[0])
 
 def mainloop():
-    global config, masks, replacement_bgs, replacement_bgs_idx
+    global config, masks, replacement_bgs, overlays
     config = load_config(config)
     success, frame = cap.read()
     if not success:
@@ -209,8 +214,10 @@ def mainloop():
     image_filters = get_imagefilters(config.get("background_filters", []))
 
     image_name = config.get("image_name", "background.jpg")
-    replacement_bgs = load_replacement_bgs(replacement_bgs, image_name,
-        height, width, image_filters)
+    replacement_bgs = load_images(replacement_bgs, image_name,
+        height, width, "replacement_bgs",
+        config.get("background_interpolation_method"),
+        image_filters)
 
     frame = frame[...,::-1]
     if replacement_bgs is None:
@@ -289,9 +296,11 @@ def mainloop():
             # caused by a wrong number of arguments in the config
             pass
 
+    replacement_bgs_idx = config.get("replacement_bgs_idx", 0)
     for c in range(3):
-        frame[:,:,c] = frame[:,:,c] * (mask) + \
+        frame[:,:,c] = frame[:,:,c] * mask + \
             replacement_bgs[replacement_bgs_idx][:,:,c] * mask_inv
+    config["replacement_bgs_idx"] = (replacement_bgs_idx + 1) % len(replacement_bgs)
 
     # Filter the result
     image_filters = get_imagefilters(config.get("result_filters", []))
@@ -302,7 +311,17 @@ def mainloop():
             # caused by a wrong number of arguments in the config
             pass
 
-    replacement_bgs_idx = (replacement_bgs_idx + 1) % len(replacement_bgs)
+    overlays_idx = config.get("overlays_idx", 0)
+    overlays = load_images(overlays, config.get("overlay_image", ""), height, width,
+        "overlays", get_imagefilters(config.get("overlay_filters", [])))
+
+    if overlays:
+        overlay = overlays[overlays_idx]
+        assert(overlay.shape[2] == 4) # The image has an alpha channel
+        for c in range(3):
+            frame[:,:,c] = frame[:,:,c] * (1.0 - overlay[:,:,3] / 255.0) + \
+                overlay[:,:,c] * (overlay[:,:,3] / 255.0)
+        config["overlays_idx"] = (overlays_idx + 1) % len(overlays)
 
     if config.get("debug_show_mask", False):
         frame = np.array(mask_img[:,:,:])
