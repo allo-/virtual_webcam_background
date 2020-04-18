@@ -43,9 +43,7 @@ except for `width` and `height` as the webcam must be reinitialized to change th
 - `blur`: Blur factor for the mask to smooth the edges.
 - `dilate`: Number of pixels the mask is shrunk to remove spots.
 - `erode`: Number of pixels the mask is grown after shrinking to capture the full body image again.
-- `blur_background`: Blur factor for the background. This is mostly useful without a virtual.
-- `grayscale_background`: Convert the background to greyscale.
-  background, but may be applied to background images.
+- `background_filters`: Filters applied to the background or virtual background.
 - `image_name`: Filename of an image file or a directory containing images for an animation.
 - `virtual_video_device`: The virtual video device, e.g., `/dev/video2`.
 - `real_video_device`: The video device of your webcam, e.g. `/dev/video0`.
@@ -62,6 +60,32 @@ except for `width` and `height` as the webcam must be reinitialized to change th
 Note: Input `width` and `height` are autodetected when they are not set in the config,
 but this can lead to bad default values, e.g. `640x480` even when the camera supports
 a resolution of `1280x720`.
+
+## Filters
+
+The `background_filters` option is a list of filters that will be applied after each other.
+
+A simple example that converts the background to grayscale and blurs it:
+
+    - `background_filters = ["grayscale", "blur"]`
+
+Some filters have arguments. To change the blur value in the filter list above, use
+
+    - `background_filters = ["grayscale", ["blur", 10, 10]]`
+
+Alternative syntax variants:
+
+    - `background_filters = ["grayscale", ["blur", [10, 10]]]`
+    - `background_filters = ["grayscale", ["blur", {intensity_x: 10, intensity_y: 10}]]`
+
+### Filters
+
+The current filters and their options are:
+
+- `blur`: Blur the image.
+  - `intensity_x`: The intensity in x direction.
+  - `intensity_y`: The intensity in y direction. When only `intensity_x` is given, it will be used for `intensity_y` as well.
+- `grayscale`: Convert the image into a grayscale image.
 
 ## Animations
 

@@ -2,8 +2,7 @@ segmentation_threshold: 0.75
 blur: 15
 erode: 50
 dilate: 45
-blur_background: 0
-grayscale_background: false
+background_filters: []
 image_name: "background.jpg"
 debug_show_mask: false
 virtual_video_device: "/dev/video2"

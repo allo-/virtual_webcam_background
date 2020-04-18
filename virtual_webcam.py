@@ -92,7 +92,11 @@ def load_replacement_bgs(replacement_bgs, image_name,
 
             for i in range(len(replacement_bgs)):
                 for image_filter in image_filters:
-                    replacement_bgs[i] = image_filter(replacement_bgs[i])
+                    try:
+                        replacement_bgs[i] = image_filter(replacement_bgs[i])
+                    except TypeError:
+                        # caused by a wrong number of arguments in the config
+                        pass
             print("Finished loading background")
 
         return replacement_bgs
@@ -176,14 +180,31 @@ def mainloop():
     if config.get("flip_vertical"):
         frame = cv2.flip(frame, 0)
 
-    blur_background_value = config.get("blur_background", 0)
-    grayscale_background = config.get("grayscale_background", False)
     image_filters = []
-    if blur_background_value:
-        image_filters.append(
-            lambda frame: filters.blur(frame, blur_background_value))
-    if grayscale_background:
-        image_filters.append(filters.grayscale)
+    background_filters = config.get("background_filters", [])
+    for bgfilter in background_filters:
+        if type(bgfilter) == str:
+            image_filters.append(filters.get_filter(bgfilter))
+        if type(bgfilter) == list:
+            filter_name = bgfilter[0]
+
+            params = bgfilter[1:]
+            args = []
+            kwargs = {}
+            if len(params) == 1 and type(params[0]) == list:
+                # ["filtername", ["value1", "value2"]]
+                args = params[0]
+            elif len(params) == 1 and type(params[0]) == dict:
+                # ["filtername", {param1: "value1", "param2": "value2"}]
+                kwargs = params[0]
+            else:
+                # ["filtername", "value1", "value2"]
+                args = params
+
+            _image_filter = filters.get_filter(filter_name)
+            image_filters.append(
+                lambda frame: _image_filter(frame, *args, **kwargs)
+            )
 
     image_name = config.get("image_name", "background.jpg")
     replacement_bgs = load_replacement_bgs(replacement_bgs, image_name,
@@ -197,7 +218,11 @@ def mainloop():
 
         replacement_bg = frame
         for image_filter in image_filters:
-            replacement_bg = image_filter(replacement_bg)
+            try:
+                replacement_bg = image_filter(replacement_bg)
+            except TypeError:
+                # caused by a wrong number of arguments in the config
+                pass
 
         replacement_bgs = [replacement_bg]
 
