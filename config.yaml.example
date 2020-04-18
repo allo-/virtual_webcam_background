@@ -3,7 +3,9 @@ blur: 15
 erode: 50
 dilate: 45
 background_filters: []
-image_name: "background.jpg"
+foreground_filters: []
+result_filters: []
+background_image: "background.jpg"
 debug_show_mask: false
 virtual_video_device: "/dev/video2"
 real_video_device: "/dev/video0"

@@ -30,7 +30,7 @@ config = {
     "blur": 0,
     "segmentation_threshold": 0.75,
     "blur_background": 0,
-    "image_name": "background.jpg",
+    "background_image": "background.jpg",
     "virtual_video_device": "/dev/video2",
     "real_video_device": "/dev/video0",
     "average_masks": 3
@@ -214,7 +214,7 @@ def mainloop():
 
     image_filters = get_imagefilters(config.get("background_filters", []))
 
-    image_name = config.get("image_name", "background.jpg")
+    image_name = config.get("background_image", "background.jpg")
     replacement_bgs = load_images(replacement_bgs, image_name,
         height, width, "replacement_bgs",
         config.get("background_interpolation_method"),

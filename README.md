@@ -46,7 +46,7 @@ except for `width` and `height` as the webcam must be reinitialized to change th
 - `background_filters`: Filters applied to the background or virtual background.
 - `foreground_filters`: Filters applied to the detected foreground.
 - `result_filters`: Filters applied to the result image.
-- `image_name`: Filename of an image file or a directory containing images for an animation.
+- `background_image`: Filename of an image file or a directory containing images for an animation.
 - `virtual_video_device`: The virtual video device, e.g., `/dev/video2`.
 - `real_video_device`: The video device of your webcam, e.g. `/dev/video0`.
 - `average_masks`: Number of masks to average. A higher number will result in afterimages,
