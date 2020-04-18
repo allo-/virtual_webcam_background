@@ -9,6 +9,7 @@ import os
 import stat
 import glob
 import yaml
+import time
 from pyfakewebcam import FakeWebcam
 
 from bodypix_functions import calc_padding
@@ -300,7 +301,10 @@ def mainloop():
     for c in range(3):
         frame[:,:,c] = frame[:,:,c] * mask + \
             replacement_bgs[replacement_bgs_idx][:,:,c] * mask_inv
-    config["replacement_bgs_idx"] = (replacement_bgs_idx + 1) % len(replacement_bgs)
+
+    if time.time() - config.get("last_frame_bg", 0) > 1.0 / config.get("background_fps", 1):
+        config["replacement_bgs_idx"] = (replacement_bgs_idx + 1) % len(replacement_bgs)
+        config["last_frame_bg"] = time.time()
 
     # Filter the result
     image_filters = get_imagefilters(config.get("result_filters", []))
@@ -321,11 +325,15 @@ def mainloop():
         for c in range(3):
             frame[:,:,c] = frame[:,:,c] * (1.0 - overlay[:,:,3] / 255.0) + \
                 overlay[:,:,c] * (overlay[:,:,3] / 255.0)
-        config["overlays_idx"] = (overlays_idx + 1) % len(overlays)
+
+        if time.time() - config.get("last_frame_overlay", 0) > 1.0 / config.get("overlay_fps", 1):
+            config["overlays_idx"] = (overlays_idx + 1) % len(overlays)
+            config["last_frame_overlay"] = time.time()
 
     if config.get("debug_show_mask", False):
         frame = np.array(mask_img[:,:,:])
     fakewebcam.schedule_frame(frame)
+    last_frame_time = time.time()
 
 while True:
     try:
