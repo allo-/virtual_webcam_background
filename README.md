@@ -8,6 +8,8 @@ As the script creates a virtual webcam device it works with any program that can
 
 ## Installation
 
+The program needs python3 and is tested with python 3.7.
+
 Install the requirements:
 
     pip install -r requirements.txt
