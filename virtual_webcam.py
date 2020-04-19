@@ -330,7 +330,10 @@ def mainloop():
             config["last_frame_overlay"] = time.time()
 
     if config.get("debug_show_mask", False):
-        frame = np.array(mask_img[:,:,:])
+        frame[:,:,0] = mask * 255
+        frame[:,:,1] = mask * 255
+        frame[:,:,2] = mask * 255
+
     fakewebcam.schedule_frame(frame)
     last_frame_time = time.time()
 
