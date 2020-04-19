@@ -20,10 +20,6 @@ import filters
 
 # Default config values
 config = {
-    # Will be replaced by the mtime of the config
-    "mtime": 0,
-    # Will be replaced by the mtime of the background
-    "replacement_mtime": 0,
     "width": None,
     "height": None,
     "erode": 0,
@@ -51,7 +47,9 @@ def load_config(oldconfig):
                 for key in yconfig:
                     config[key] = yconfig[key]
             # Force image reload
-            config["replacement_mtime"] = 0
+            for key in config:
+                if key.endswith("_mtime"):
+                    config[key] = 0
     except OSError:
         pass
     return config
