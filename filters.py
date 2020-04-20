@@ -1,25 +1,29 @@
 import cv2
 
-def grayscale(frame):
+def grayscale(*args, **kwargs):
+    frame = kwargs['frame']
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     return cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 
-def blur(frame, intensity_x=5, intensity_y=-1):
+def blur(intensity_x=5, intensity_y=-1, *args, **kwargs):
+    frame = kwargs['frame']
     if intensity_x <= 0 and intensity_y <= 0:
         return frame
     if intensity_y == -1:
         intensity_y = intensity_x
     return cv2.blur(frame, (intensity_x, intensity_y))
 
-def noop(frame, *args, **kwargs):
-    return frame
+def noop(*args, **kwargs):
+    return kwargs['frame']
 
-def single_color(frame, r=255.0, g=255.0, b=255.0):
+def single_color(r=255.0, g=255.0, b=255.0, *args, **kwargs):
+    frame = kwargs['frame']
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
     return color_filter(frame, r, g, b)
 
-def color_filter(frame, r=255.0, g=255.0, b=255.0):
+def color_filter(r=255.0, g=255.0, b=255.0, *args, **kwargs):
+    frame = kwargs['frame']
     frame[:,:,0] = frame[:,:,1] * r / 255.0
     frame[:,:,1] = frame[:,:,1] * g / 255.0
     frame[:,:,2] = frame[:,:,2] * b / 255.0

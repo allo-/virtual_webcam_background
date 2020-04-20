@@ -93,11 +93,7 @@ def load_images(images, image_name, height, width, imageset_name,
 
             for i in range(len(images)):
                 for image_filter in image_filters:
-                    try:
-                        images[i] = image_filter(images[i])
-                    except TypeError:
-                        # caused by a wrong number of arguments in the config
-                        pass
+                    images[i] = image_filter(frame=images[i])
             print("Finished loading background")
 
         return images
@@ -114,22 +110,29 @@ def get_imagefilters(filter_list):
             filter_name = filters_item[0]
 
             params = filters_item[1:]
-            args = []
-            kwargs = {}
+            _args = []
+            _kwargs = {}
             if len(params) == 1 and type(params[0]) == list:
                 # ["filtername", ["value1", "value2"]]
-                args = params[0]
+                _args = params[0]
             elif len(params) == 1 and type(params[0]) == dict:
                 # ["filtername", {param1: "value1", "param2": "value2"}]
-                kwargs = params[0]
+                _kwargs = params[0]
             else:
                 # ["filtername", "value1", "value2"]
-                args = params
+                _args = params
 
             _image_filter = filters.get_filter(filter_name)
-            image_filters.append(
-                lambda frame: _image_filter(frame, *args, **kwargs)
-            )
+            def filter_with_parameters(*args, **kwargs):
+                args = list(args)
+                for arg in _args:
+                    args.append(arg)
+                for key in _kwargs:
+                    if not key in kwargs:
+                        kwargs[key] = _kwargs[key]
+                return _image_filter(*args, **kwargs)
+
+            image_filters.append(filter_with_parameters)
     return image_filters
 
 ### Global variables ###
@@ -227,11 +230,7 @@ def mainloop():
 
         replacement_bg = np.copy(frame)
         for image_filter in image_filters:
-            try:
-                replacement_bg = image_filter(replacement_bg)
-            except TypeError:
-                # caused by a wrong number of arguments in the config
-                pass
+            replacement_bg = image_filter(frame=replacement_bg)
 
         replacement_bgs = [replacement_bg]
 
@@ -291,7 +290,7 @@ def mainloop():
     image_filters = get_imagefilters(config.get("foreground_filters", []))
     for image_filter in image_filters:
         try:
-            frame = image_filter(frame)
+            frame = image_filter(frame=frame)
         except TypeError:
             # caused by a wrong number of arguments in the config
             pass
@@ -309,7 +308,7 @@ def mainloop():
     image_filters = get_imagefilters(config.get("result_filters", []))
     for image_filter in image_filters:
         try:
-            frame = image_filter(frame)
+            frame = image_filter(frame=frame)
         except TypeError:
             # caused by a wrong number of arguments in the config
             pass
