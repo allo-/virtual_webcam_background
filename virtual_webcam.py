@@ -223,11 +223,7 @@ def mainloop():
         image_filters)
 
     frame = frame[...,::-1]
-    if replacement_bgs is None:
-        if len(image_filters) == 0:
-            fakewebcam.schedule_frame(frame)
-            return
-
+    if not replacement_bgs:
         replacement_bg = np.copy(frame)
         for image_filter in image_filters:
             replacement_bg = image_filter(frame=replacement_bg)
