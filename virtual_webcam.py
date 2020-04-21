@@ -32,6 +32,7 @@ config = {
     "average_masks": 3
 }
 
+
 def load_config(oldconfig):
     """
         Load the config file. This only reads the file,
@@ -54,8 +55,9 @@ def load_config(oldconfig):
         pass
     return config
 
+
 def load_images(images, image_name, height, width, imageset_name,
-        interpolation_method="NEAREST", image_filters=[]):
+                interpolation_method="NEAREST", image_filters=[]):
     """
         Load and preprocess image(s)
         image_name must be either the path to an image file or
@@ -100,6 +102,7 @@ def load_images(images, image_name, height, width, imageset_name,
 
     except OSError:
         return None
+
 
 def get_imagefilters(filter_list):
     image_filters = []
@@ -201,6 +204,7 @@ input_tensor_names = tfjs.util.get_input_tensors(graph)
 output_tensor_names = tfjs.util.get_output_tensors(graph)
 input_tensor = graph.get_tensor_by_name(input_tensor_names[0])
 
+
 def mainloop():
     global config, masks, replacement_bgs, overlays
     config = load_config(config)
@@ -236,8 +240,11 @@ def mainloop():
         internal_resolution, output_stride, input_height, input_width)
 
     padT, padB, padL, padR = calc_padding(frame, target_height, target_width)
-    resized_frame = tf.image.resize_with_pad(frame, target_height, target_width,
-            method=tf.image.ResizeMethod.BILINEAR)
+    resized_frame = tf.image.resize_with_pad(
+        frame,
+        target_height, target_width,
+        method=tf.image.ResizeMethod.BILINEAR
+    )
 
     resized_height, resized_width = resized_frame.shape[:2]
 
@@ -271,14 +278,21 @@ def mainloop():
     num_average_masks = max(1, config.get("average_masks", 3))
     masks = masks[:num_average_masks]
     mask = np.mean(masks, axis=0)
-
     mask *= 255
-    if config["dilate"]:
-        mask = cv2.dilate(mask, np.ones((config["dilate"], config["dilate"]), np.uint8), iterations=1)
-    if config["erode"]:
-        mask = cv2.erode(mask, np.ones((config["erode"], config["erode"]), np.uint8), iterations=1)
+
+    dilate_value = config.get("dilate", 0)
+    erode_value = config.get("erode", 0)
+    if dilate_value:
+        mask = cv2.dilate(mask,
+            np.ones((dilate_value, dilate_value), np.uint8), iterations=1)
+    if erode_value:
+        mask = cv2.erode(mask,
+            np.ones((config["erode"], config["erode"]), np.uint8),
+            iterations=1)
+
     if config["blur"]:
         mask = cv2.blur(mask, (config["blur"], config["blur"]))
+
     mask /= 255.
     mask_inv = 1.0 - mask
 
@@ -296,8 +310,10 @@ def mainloop():
         frame[:,:,c] = frame[:,:,c] * mask + \
             replacement_bgs[replacement_bgs_idx][:,:,c] * mask_inv
 
-    if time.time() - config.get("last_frame_bg", 0) > 1.0 / config.get("background_fps", 1):
-        config["replacement_bgs_idx"] = (replacement_bgs_idx + 1) % len(replacement_bgs)
+    time_since_last_frame = time.time() - config.get("last_frame_bg", 0)
+    if time_since_last_frame > 1.0 / config.get("background_fps", 1):
+        config["replacement_bgs_idx"] = \
+            (replacement_bgs_idx + 1) % len(replacement_bgs)
         config["last_frame_bg"] = time.time()
 
     # Filter the result
@@ -310,8 +326,9 @@ def mainloop():
             pass
 
     overlays_idx = config.get("overlays_idx", 0)
-    overlays = load_images(overlays, config.get("overlay_image", ""), height, width,
-        "overlays", get_imagefilters(config.get("overlay_filters", [])))
+    overlays = load_images(overlays, config.get("overlay_image", ""),
+        height, width, "overlays",
+        get_imagefilters(config.get("overlay_filters", [])))
 
     if overlays:
         overlay = overlays[overlays_idx]
@@ -320,7 +337,8 @@ def mainloop():
             frame[:,:,c] = frame[:,:,c] * (1.0 - overlay[:,:,3] / 255.0) + \
                 overlay[:,:,c] * (overlay[:,:,3] / 255.0)
 
-        if time.time() - config.get("last_frame_overlay", 0) > 1.0 / config.get("overlay_fps", 1):
+        time_since_last_frame = time.time() - config.get("last_frame_overlay", 0)
+        if time_since_last_frame > 1.0 / config.get("overlay_fps", 1):
             config["overlays_idx"] = (overlays_idx + 1) % len(overlays)
             config["last_frame_overlay"] = time.time()
 
