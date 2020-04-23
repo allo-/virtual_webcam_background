@@ -10,3 +10,4 @@ def get_filter(name):
 from . import grayscale
 from . import blur
 from . import color
+from . import roll
