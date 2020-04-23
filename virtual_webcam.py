@@ -327,11 +327,16 @@ def mainloop():
 
     overlays_idx = config.get("overlays_idx", 0)
     overlays = load_images(overlays, config.get("overlay_image", ""),
-        height, width, "overlays",
-        get_imagefilters(config.get("overlay_filters", [])))
+        height, width, "overlays")
 
     if overlays:
         overlay = overlays[overlays_idx]
+
+        # Filter the overlay
+        image_filters = get_imagefilters(config.get("overlay_filters", []))
+        for image_filter in image_filters:
+            overlay = image_filter(frame=overlay)
+
         assert(overlay.shape[2] == 4) # The image has an alpha channel
         for c in range(3):
             frame[:,:,c] = frame[:,:,c] * (1.0 - overlay[:,:,3] / 255.0) + \
