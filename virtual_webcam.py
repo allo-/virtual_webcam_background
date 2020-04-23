@@ -333,7 +333,7 @@ def mainloop():
         height, width, "overlays")
 
     if overlays:
-        overlay = overlays[overlays_idx]
+        overlay = np.copy(overlays[overlays_idx])
 
         # Filter the overlay
         image_filters = get_imagefilters(config.get("overlay_filters", []))
