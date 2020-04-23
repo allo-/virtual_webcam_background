@@ -16,6 +16,7 @@ from bodypix_functions import calc_padding
 from bodypix_functions import scale_and_crop_to_input_tensor_shape
 from bodypix_functions import to_input_resolution_height_and_width
 from bodypix_functions import to_mask_tensor
+
 import filters
 
 # Default config values
@@ -126,6 +127,8 @@ def get_imagefilters(filter_list):
                 _args = params
 
             _image_filter = filters.get_filter(filter_name)
+            if not _image_filter:
+                continue
             def filter_with_parameters(*args, **kwargs):
                 args = list(args)
                 for arg in _args:

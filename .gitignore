@@ -3,3 +3,4 @@ bodypix_mobilenet_float_050_model-stride16
 bodypix_mobilenet_float_075_model-stride16
 bodypix_mobilenet_float_100_model-stride16
 config.yaml
+__pycache__
