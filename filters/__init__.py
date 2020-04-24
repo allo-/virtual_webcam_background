@@ -9,6 +9,7 @@ def get_filter(name):
 
 from . import grayscale
 from . import blur
+from . import gaussian_blur
 from . import color
 from . import roll
 from . import transparency
