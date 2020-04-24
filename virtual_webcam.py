@@ -196,7 +196,7 @@ fakewebcam = FakeWebcam(config.get("virtual_video_device"), width, height)
 
 output_stride = 16
 internal_resolution = 0.5
-multiplier = 0.5
+multiplier = 0.75
 
 model_path = 'bodypix_mobilenet_float_{0:03d}_model-stride{1}'.format(
     int(100 * multiplier), output_stride)

@@ -11,3 +11,4 @@ from . import grayscale
 from . import blur
 from . import color
 from . import roll
+from . import transparency
