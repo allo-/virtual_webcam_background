@@ -130,7 +130,11 @@ def get_imagefilters(filter_list):
             _image_filter = filters.get_filter(filter_name)
             if not _image_filter:
                 continue
-            def filter_with_parameters(*args, **kwargs):
+            def filter_with_parameters(_image_filter=_image_filter,
+                    _args=_args, _kwargs=_kwargs, *args, **kwargs):
+                # Using default parameters is neccessary to work with
+                # a copy of _image_filter, _args and _kwargs instead of
+                # a reference
                 args = list(args)
                 for arg in _args:
                     args.append(arg)
