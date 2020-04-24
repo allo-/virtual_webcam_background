@@ -85,9 +85,12 @@ Alternative syntax variants:
 
 The current filters and their options are:
 
-- `blur`: Blur the image.
-  - `intensity_x`: The intensity in x direction.
-  - `intensity_y`: The intensity in y direction. When only `intensity_x` is given, it will be used for `intensity_y` as well.
+- `blur`: Blur the image.i
+  - `intensity_x`: The intensity in the x direction.
+  - `intensity_y`: The intensity in the y direction. When only `intensity_x` is given, it will be used for `intensity_y` as well.
+- `gaussian_blur`: Blur the image using a Gaussian blur. It looks better than normal box blur, but is more CPU intensive.
+  - `intensity_x`: The intensity in the x direction. Must be an odd value: even values are bumped to the next odd value.
+  - `intensity_y`: The intensity in the y direction. Must be an odd value: even values are bumped to the next odd value. When only `intensity_x` is given, it will be used for `intensity_y` as well.
 - `grayscale`: Convert the image into a grayscale image.
 - `roll`: move an image with a constant speed. This is mostly useful for overlays.
   - `speed_x`: Speed in x direction.
