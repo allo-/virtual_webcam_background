@@ -72,6 +72,7 @@ def load_images(images, image_name, height, width, imageset_name,
     try:
         replacement_stat = os.stat(image_name)
         if replacement_stat.st_mtime != config.get(imageset_name + "_mtime"):
+            time.sleep(0.1)
             print("Loading images {0} ...".format(image_name))
             config[imageset_name + "_idx"] = 0
             filenames = [image_name]
