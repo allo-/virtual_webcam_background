@@ -14,11 +14,6 @@ Install the requirements:
 
     pip install -r requirements.txt
 
-Due to packaging issues, you need to install `tfjs-to-tf` using
-
-    pip install tensorflowjs
-    pip install "git+https://github.com/patlevin/tfjs-to-tf.git@v0.5.0"
-
 Download the bodypix model:
 
     ./get-model.sh

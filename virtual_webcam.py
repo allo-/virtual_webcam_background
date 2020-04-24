@@ -3,7 +3,8 @@
 import tensorflow as tf
 import cv2
 import sys
-import tfjs_graph_converter as tfjs
+import tfjs_graph_converter.api as tfjs_api
+import tfjs_graph_converter.util as tfjs_util
 import numpy as np
 import os
 import stat
@@ -203,13 +204,16 @@ model_path = 'bodypix_mobilenet_float_{0:03d}_model-stride{1}'.format(
 
 # Load the tensorflow model
 print("Loading model...")
-graph = tfjs.api.load_graph_model(model_path)  # downloaded from the link above
+graph_def = tfjs_api.load_graph_model(model_path)
 print("done.")
 
 # Setup the tensorflow session
-sess = tf.compat.v1.Session(graph=graph)
-input_tensor_names = tfjs.util.get_input_tensors(graph)
-output_tensor_names = tfjs.util.get_output_tensors(graph)
+sess = tf.compat.v1.Session()
+tf.graph_util.import_graph_def(graph_def, name='')
+graph = tf.compat.v1.get_default_graph()
+
+input_tensor_names = tfjs_util.get_input_tensors(graph)
+output_tensor_names = tfjs_util.get_output_tensors(graph)
 input_tensor = graph.get_tensor_by_name(input_tensor_names[0])
 
 
