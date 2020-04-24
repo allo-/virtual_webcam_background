@@ -94,6 +94,16 @@ The current filters and their options are:
   - `intensity_x`: The intensity in x direction.
   - `intensity_y`: The intensity in y direction. When only `intensity_x` is given, it will be used for `intensity_y` as well.
 - `grayscale`: Convert the image into a grayscale image.
+- `roll`: move an image with a constant speed. This is mostly useful for overlays.
+  - `speed_x`: Speed in x direction.
+  - `speed_y`: Speed in y direction.
+- `change_alpha`: Change the transparency of an image.
+  - `change_alpha`: Alpha value to add (between `-255` and `255`)
+  - `alpha_min`, `alpha_max`: Transparency levels to clip the resulting alpha value.
+- `single_color`: Change the image to grayscale and then color it with a given color.
+  - `r`, `g`, `b`: RGB values.
+- `color_filter`: Change the color levels by multiplying the RGB values with a factor between `0` and `255`.
+  - `r`, `g`, `b`: The factors for the colors red/green/blue.
 
 ## Animations
 
