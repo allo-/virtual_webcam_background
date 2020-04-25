@@ -6,6 +6,8 @@ Tensorflow with [BodyPix](https://blog.tensorflow.org/2019/11/updated-bodypix-2.
 
 As the script creates a virtual webcam device it works with any program that can use a v4l2 webcam.
 
+See [virtual-webcam.com](https://www.virtual-webcam.com) for more information, image packs and more.
+
 ## Installation
 
 The program needs python3 and is tested with python 3.7.
