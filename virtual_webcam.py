@@ -145,21 +145,14 @@ def mainloop():
     if config.get("flip_vertical"):
         frame = cv2.flip(frame, 0)
 
-    image_filters = get_imagefilters(config.get("background_filters", []))
-
     image_name = config.get("background_image", "background.jpg")
     replacement_bgs = load_images(replacement_bgs, image_name,
         height, width, "replacement_bgs", data,
-        config.get("background_interpolation_method"),
-        image_filters)
+        config.get("background_interpolation_method"))
 
     frame = frame[...,::-1]
     if not replacement_bgs:
-        replacement_bg = np.copy(frame)
-        for image_filter in image_filters:
-            replacement_bg = image_filter(frame=replacement_bg)
-
-        replacement_bgs = [replacement_bg]
+        replacement_bgs = [np.copy(frame)]
 
     input_height, input_width = frame.shape[:2]
 
@@ -233,10 +226,20 @@ def mainloop():
             # caused by a wrong number of arguments in the config
             pass
 
+    image_filters = get_imagefilters(config.get("background_filters", []))
     replacement_bgs_idx = data.get("replacement_bgs_idx", 0)
+    replacement_bg = np.copy(replacement_bgs[replacement_bgs_idx])
+
+    for image_filter in image_filters:
+        try:
+            replacement_bg = image_filter(frame=replacement_bg)
+        except TypeError:
+            # caused by a wrong number of arguments in the config
+            pass
+
     for c in range(3):
         frame[:,:,c] = frame[:,:,c] * mask + \
-            replacement_bgs[replacement_bgs_idx][:,:,c] * mask_inv
+            replacement_bg[:,:,c] * mask_inv
 
     time_since_last_frame = time.time() - data.get("last_frame_bg", 0)
     if time_since_last_frame > 1.0 / config.get("background_fps", 1):
