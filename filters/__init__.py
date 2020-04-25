@@ -13,3 +13,4 @@ from . import gaussian_blur
 from . import color
 from . import roll
 from . import transparency
+from . import noise
