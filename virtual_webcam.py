@@ -6,10 +6,6 @@ import sys
 import tfjs_graph_converter.api as tfjs_api
 import tfjs_graph_converter.util as tfjs_util
 import numpy as np
-import os
-import stat
-import glob
-import yaml
 import time
 from pyfakewebcam import FakeWebcam
 
@@ -19,6 +15,7 @@ from bodypix_functions import to_input_resolution_height_and_width
 from bodypix_functions import to_mask_tensor
 
 import filters
+from loader import load_config, load_images
 
 # Default config values
 config = {
@@ -34,78 +31,7 @@ config = {
     "average_masks": 3
 }
 
-
-def load_config(oldconfig):
-    """
-        Load the config file. This only reads the file,
-        when its mtime is changed.
-    """
-
-    config = oldconfig
-    try:
-        if os.stat("config.yaml").st_mtime != config.get("mtime"):
-            config["mtime"] = os.stat("config.yaml").st_mtime
-            with open("config.yaml", "r") as configfile:
-                yconfig = yaml.load(configfile, Loader=yaml.SafeLoader)
-                for key in yconfig:
-                    config[key] = yconfig[key]
-            # Force image reload
-            for key in config:
-                if key.endswith("_mtime"):
-                    config[key] = 0
-    except OSError:
-        pass
-    return config
-
-
-def load_images(images, image_name, height, width, imageset_name,
-                interpolation_method="NEAREST", image_filters=[]):
-    """
-        Load and preprocess image(s)
-        image_name must be either the path to an image file or
-        the path to an folder containing multiple files that should be
-        played as animation.
-        imageset_name is an unique name that is used in the config to store
-        values like the mtime
-        The function only reloads the image(s) when the mtime of the file
-        or folder is changed.
-    """
-    try:
-        replacement_stat = os.stat(image_name)
-        if replacement_stat.st_mtime != config.get(imageset_name + "_mtime"):
-            time.sleep(0.1)
-            print("Loading images {0} ...".format(image_name))
-            config[imageset_name + "_idx"] = 0
-            filenames = [image_name]
-            if stat.S_ISDIR(replacement_stat.st_mode):
-                filenames = glob.glob(filenames[0] + "/*.*")
-                if not filenames:
-                    return None
-
-            images = []
-            for filename in filenames:
-                image_raw = cv2.imread(filename, cv2.IMREAD_UNCHANGED)
-                interpolation_method = cv2.INTER_LINEAR
-                if interpolation_method == "NEAREST":
-                    interpolation_method = cv2.INTER_NEAREST
-                image = cv2.resize(image_raw, (width, height),
-                    interpolation=interpolation_method)
-                # BGR to RGB
-                image[:,:,0], image[:,:,2] = image[:,:,2], image[:,:,0].copy()
-                images.append(image)
-
-            config[imageset_name + "_mtime"] = os.stat(image_name).st_mtime
-
-            for i in range(len(images)):
-                for image_filter in image_filters:
-                    images[i] = image_filter(frame=images[i])
-            print("Finished loading background")
-
-        return images
-
-    except OSError:
-        return None
-
+data = {}
 
 def get_imagefilters(filter_list):
     image_filters = []
@@ -234,7 +160,7 @@ def mainloop():
 
     image_name = config.get("background_image", "background.jpg")
     replacement_bgs = load_images(replacement_bgs, image_name,
-        height, width, "replacement_bgs",
+        height, width, "replacement_bgs", data,
         config.get("background_interpolation_method"),
         image_filters)
 
@@ -339,7 +265,7 @@ def mainloop():
 
     overlays_idx = config.get("overlays_idx", 0)
     overlays = load_images(overlays, config.get("overlay_image", ""),
-        height, width, "overlays")
+        height, width, "overlays", data)
 
     if overlays:
         overlay = np.copy(overlays[overlays_idx])
