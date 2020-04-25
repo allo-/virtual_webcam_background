@@ -70,16 +70,22 @@ The `background_filters` option is a list of filters that will be applied after 
 
 A simple example that converts the background to grayscale and blurs it:
 
-    - `background_filters = ["grayscale", "blur"]`
+```
+- background_filters = ["grayscale", "blur"]
+```
 
 Some filters have arguments. To change the blur value in the filter list above, use
 
-    - `background_filters = ["grayscale", ["blur", 10, 10]]`
+```
+- background_filters = ["grayscale", ["blur", 10, 10]]
+```
 
 Alternative syntax variants:
 
-    - `background_filters = ["grayscale", ["blur", [10, 10]]]`
-    - `background_filters = ["grayscale", ["blur", {intensity_x: 10, intensity_y: 10}]]`
+```
+- background_filters = ["grayscale", ["blur", [10, 10]]]
+- background_filters = ["grayscale", ["blur", {intensity_x: 10, intensity_y: 10}]]
+```
 
 ### Filters
 
