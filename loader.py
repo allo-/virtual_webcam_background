@@ -5,7 +5,7 @@ import time
 import cv2
 import glob
 
-def load_config(oldconfig):
+def load_config(data, oldconfig={}):
     """
         Load the config file. This only reads the file,
         when its mtime is changed.
@@ -13,16 +13,18 @@ def load_config(oldconfig):
 
     config = oldconfig
     try:
-        if os.stat("config.yaml").st_mtime != config.get("mtime"):
-            config["mtime"] = os.stat("config.yaml").st_mtime
+        if os.stat("config.yaml").st_mtime != data.get("config_mtime"):
+            print("Reloading config.")
+            config = {}
             with open("config.yaml", "r") as configfile:
                 yconfig = yaml.load(configfile, Loader=yaml.SafeLoader)
                 for key in yconfig:
                     config[key] = yconfig[key]
             # Force image reload
-            for key in config:
+            for key in data:
                 if key.endswith("_mtime"):
-                    config[key] = 0
+                    data[key] = 0
+            data["config_mtime"] = os.stat("config.yaml").st_mtime
     except OSError:
         pass
     return config

@@ -18,18 +18,7 @@ import filters
 from loader import load_config, load_images
 
 # Default config values
-config = {
-    "width": None,
-    "height": None,
-    "erode": 0,
-    "blur": 0,
-    "segmentation_threshold": 0.75,
-    "blur_background": 0,
-    "background_image": "background.jpg",
-    "virtual_video_device": "/dev/video2",
-    "real_video_device": "/dev/video0",
-    "average_masks": 3
-}
+config = {}
 
 data = {}
 
@@ -87,7 +76,7 @@ overlays = None
 masks = []
 
 # Load the config
-config = load_config(config)
+config = load_config(data)
 
 ### End global variables ####
 
@@ -145,7 +134,7 @@ input_tensor = graph.get_tensor_by_name(input_tensor_names[0])
 
 def mainloop():
     global config, masks, replacement_bgs, overlays
-    config = load_config(config)
+    config = load_config(data, config)
     success, frame = cap.read()
     if not success:
         print("Error getting a webcam image!")
@@ -206,7 +195,7 @@ def mainloop():
     )
 
     mask = to_mask_tensor(scaled_segment_scores,
-        config["segmentation_threshold"])
+        config.get("segmentation_threshold", 0.75))
     mask = tf.dtypes.cast(mask, tf.int32)
     mask = np.reshape(mask, mask.shape[:2])
 
@@ -220,16 +209,17 @@ def mainloop():
 
     dilate_value = config.get("dilate", 0)
     erode_value = config.get("erode", 0)
+    blur_value = config.get("blur", 0)
+
     if dilate_value:
         mask = cv2.dilate(mask,
             np.ones((dilate_value, dilate_value), np.uint8), iterations=1)
     if erode_value:
         mask = cv2.erode(mask,
-            np.ones((config["erode"], config["erode"]), np.uint8),
-            iterations=1)
-
-    if config["blur"]:
-        mask = cv2.blur(mask, (config["blur"], config["blur"]))
+            np.ones((erode_value, erode_value),
+            np.uint8), iterations=1)
+    if blur_value:
+        mask = cv2.blur(mask, (blur_value, blur_value))
 
     mask /= 255.
     mask_inv = 1.0 - mask
@@ -243,16 +233,16 @@ def mainloop():
             # caused by a wrong number of arguments in the config
             pass
 
-    replacement_bgs_idx = config.get("replacement_bgs_idx", 0)
+    replacement_bgs_idx = data.get("replacement_bgs_idx", 0)
     for c in range(3):
         frame[:,:,c] = frame[:,:,c] * mask + \
             replacement_bgs[replacement_bgs_idx][:,:,c] * mask_inv
 
-    time_since_last_frame = time.time() - config.get("last_frame_bg", 0)
+    time_since_last_frame = time.time() - data.get("last_frame_bg", 0)
     if time_since_last_frame > 1.0 / config.get("background_fps", 1):
-        config["replacement_bgs_idx"] = \
+        data["replacement_bgs_idx"] = \
             (replacement_bgs_idx + 1) % len(replacement_bgs)
-        config["last_frame_bg"] = time.time()
+        data["last_frame_bg"] = time.time()
 
     # Filter the result
     image_filters = get_imagefilters(config.get("result_filters", []))
@@ -263,7 +253,7 @@ def mainloop():
             # caused by a wrong number of arguments in the config
             pass
 
-    overlays_idx = config.get("overlays_idx", 0)
+    overlays_idx = data.get("overlays_idx", 0)
     overlays = load_images(overlays, config.get("overlay_image", ""),
         height, width, "overlays", data)
 
@@ -280,10 +270,10 @@ def mainloop():
             frame[:,:,c] = frame[:,:,c] * (1.0 - overlay[:,:,3] / 255.0) + \
                 overlay[:,:,c] * (overlay[:,:,3] / 255.0)
 
-        time_since_last_frame = time.time() - config.get("last_frame_overlay", 0)
+        time_since_last_frame = time.time() - data.get("last_frame_overlay", 0)
         if time_since_last_frame > 1.0 / config.get("overlay_fps", 1):
-            config["overlays_idx"] = (overlays_idx + 1) % len(overlays)
-            config["last_frame_overlay"] = time.time()
+            data["overlays_idx"] = (overlays_idx + 1) % len(overlays)
+            data["last_frame_overlay"] = time.time()
 
     if config.get("debug_show_mask", False):
         frame[:,:,0] = mask * 255
@@ -291,7 +281,6 @@ def mainloop():
         frame[:,:,2] = mask * 255
 
     fakewebcam.schedule_frame(frame)
-    last_frame_time = time.time()
 
 while True:
     try:
