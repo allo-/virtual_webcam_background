@@ -99,6 +99,8 @@ def mainloop():
     if not success:
         print("Error getting a webcam image!")
         sys.exit(1)
+    # BGR to RGB
+    frame = frame[...,::-1]
 
     if config.get("flip_horizontal"):
         frame = cv2.flip(frame, 1)
@@ -110,7 +112,6 @@ def mainloop():
         height, width, "replacement_bgs", data,
         config.get("background_interpolation_method"))
 
-    frame = frame[...,::-1]
     if not replacement_bgs:
         replacement_bgs = [np.copy(frame)]
 
