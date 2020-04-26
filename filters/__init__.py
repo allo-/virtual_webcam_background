@@ -47,6 +47,15 @@ def get_filters(filter_list):
             image_filters.append(filter_with_parameters)
     return image_filters
 
+def apply_filters(frame, image_filters):
+    for image_filter in image_filters:
+        try:
+            frame = image_filter(frame=frame)
+        except TypeError:
+            # caused by a wrong number of arguments in the config
+            pass
+    return frame
+
 from . import grayscale
 from . import blur
 from . import gaussian_blur

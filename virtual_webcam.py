@@ -178,24 +178,14 @@ def mainloop():
     mask_inv = 1.0 - mask
 
     # Filter the foreground
-    image_filters = filters.get_filters(config.get("foreground_filters", []))
-    for image_filter in image_filters:
-        try:
-            frame = image_filter(frame=frame)
-        except TypeError:
-            # caused by a wrong number of arguments in the config
-            pass
+    frame = filters.apply_filters(frame,
+            filters.get_filters(config.get("foreground_filters", [])))
 
-    image_filters = filters.get_filters(config.get("background_filters", []))
     replacement_bgs_idx = data.get("replacement_bgs_idx", 0)
     replacement_bg = np.copy(replacement_bgs[replacement_bgs_idx])
 
-    for image_filter in image_filters:
-        try:
-            replacement_bg = image_filter(frame=replacement_bg)
-        except TypeError:
-            # caused by a wrong number of arguments in the config
-            pass
+    replacement_bg = filters.apply_filters(replacement_bg,
+            filters.get_filters(config.get("background_filters", [])))
 
     for c in range(3):
         frame[:,:,c] = frame[:,:,c] * mask + \
@@ -208,13 +198,8 @@ def mainloop():
         data["last_frame_bg"] = time.time()
 
     # Filter the result
-    image_filters = filters.get_filters(config.get("result_filters", []))
-    for image_filter in image_filters:
-        try:
-            frame = image_filter(frame=frame)
-        except TypeError:
-            # caused by a wrong number of arguments in the config
-            pass
+    replacement_bg = filters.apply_filters(frame,
+            filters.get_filters(config.get("result_filters", [])))
 
     overlays_idx = data.get("overlays_idx", 0)
     overlays = load_images(overlays, config.get("overlay_image", ""),
@@ -224,9 +209,8 @@ def mainloop():
         overlay = np.copy(overlays[overlays_idx])
 
         # Filter the overlay
-        image_filters = filters.get_filters(config.get("overlay_filters", []))
-        for image_filter in image_filters:
-            overlay = image_filter(frame=overlay)
+        overlay = filters.apply_filters(overlay,
+            filters.get_filters(config.get("overlay_filters", [])))
 
         assert(overlay.shape[2] == 4) # The image has an alpha channel
         for c in range(3):
