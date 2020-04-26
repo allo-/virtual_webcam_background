@@ -22,46 +22,6 @@ config = {}
 
 data = {}
 
-def get_imagefilters(filter_list):
-    image_filters = []
-    for filters_item in filter_list:
-        if type(filters_item) == str:
-            image_filters.append(filters.get_filter(filters_item))
-        if type(filters_item) == list:
-            filter_name = filters_item[0]
-
-            params = filters_item[1:]
-            _args = []
-            _kwargs = {}
-            if len(params) == 1 and type(params[0]) == list:
-                # ["filtername", ["value1", "value2"]]
-                _args = params[0]
-            elif len(params) == 1 and type(params[0]) == dict:
-                # ["filtername", {param1: "value1", "param2": "value2"}]
-                _kwargs = params[0]
-            else:
-                # ["filtername", "value1", "value2"]
-                _args = params
-
-            _image_filter = filters.get_filter(filter_name)
-            if not _image_filter:
-                continue
-            def filter_with_parameters(_image_filter=_image_filter,
-                    _args=_args, _kwargs=_kwargs, *args, **kwargs):
-                # Using default parameters is neccessary to work with
-                # a copy of _image_filter, _args and _kwargs instead of
-                # a reference
-                args = list(args)
-                for arg in _args:
-                    args.append(arg)
-                for key in _kwargs:
-                    if not key in kwargs:
-                        kwargs[key] = _kwargs[key]
-                return _image_filter(*args, **kwargs)
-
-            image_filters.append(filter_with_parameters)
-    return image_filters
-
 ### Global variables ###
 
 # Background frames and the current index in the list
@@ -218,7 +178,7 @@ def mainloop():
     mask_inv = 1.0 - mask
 
     # Filter the foreground
-    image_filters = get_imagefilters(config.get("foreground_filters", []))
+    image_filters = filters.get_filters(config.get("foreground_filters", []))
     for image_filter in image_filters:
         try:
             frame = image_filter(frame=frame)
@@ -226,7 +186,7 @@ def mainloop():
             # caused by a wrong number of arguments in the config
             pass
 
-    image_filters = get_imagefilters(config.get("background_filters", []))
+    image_filters = filters.get_filters(config.get("background_filters", []))
     replacement_bgs_idx = data.get("replacement_bgs_idx", 0)
     replacement_bg = np.copy(replacement_bgs[replacement_bgs_idx])
 
@@ -248,7 +208,7 @@ def mainloop():
         data["last_frame_bg"] = time.time()
 
     # Filter the result
-    image_filters = get_imagefilters(config.get("result_filters", []))
+    image_filters = filters.get_filters(config.get("result_filters", []))
     for image_filter in image_filters:
         try:
             frame = image_filter(frame=frame)
@@ -264,7 +224,7 @@ def mainloop():
         overlay = np.copy(overlays[overlays_idx])
 
         # Filter the overlay
-        image_filters = get_imagefilters(config.get("overlay_filters", []))
+        image_filters = filters.get_filters(config.get("overlay_filters", []))
         for image_filter in image_filters:
             overlay = image_filter(frame=overlay)
 
