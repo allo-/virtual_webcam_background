@@ -30,6 +30,7 @@ replacement_bgs = None
 
 # Overlays
 overlays = None
+background_overlays = None
 
 # The last mask frames are kept to average the actual mask
 # to reduce flickering
@@ -93,7 +94,7 @@ input_tensor = graph.get_tensor_by_name(input_tensor_names[0])
 
 
 def mainloop():
-    global config, masks, replacement_bgs, overlays
+    global config, masks, replacement_bgs, overlays, background_overlays
     config = load_config(data, config)
     success, frame = cap.read()
     if not success:
@@ -188,6 +189,36 @@ def mainloop():
     replacement_bg = filters.apply_filters(replacement_bg,
             filters.get_filters(config.get("background_filters", [])))
 
+    background_overlays_idx = data.get("background_overlays_idx", 0)
+    background_overlays = load_images(background_overlays,
+        config.get("background_overlay_image", ""),
+        height, width, "overlays", data)
+
+    if background_overlays:
+        background_overlay = np.copy(
+                background_overlays[background_overlays_idx])
+
+        # Filter the overlay
+        background_overlay = filters.apply_filters(background_overlay,
+            filters.get_filters(config.get("background_overlay_filters", [])))
+
+        # The image has an alpha channel
+        assert(background_overlay.shape[2] == 4)
+
+        for c in range(3):
+            replacement_bg[:,:,c] = replacement_bg[:,:,c] * \
+                (1.0 - background_overlay[:,:,3] / 255.0) + \
+                background_overlay[:,:,c] * (background_overlay[:,:,3] / 255.0)
+
+        time_since_last_frame = time.time() - \
+            data.get("last_frame_background_overlay", 0)
+        if time_since_last_frame > 1.0 / \
+                config.get("background_overlay_fps", 1):
+            data["background_overlays_idx"] = \
+                (background_overlays_idx + 1) % len(background_overlays)
+            data["last_frame_background_overlay"] = time.time()
+
+    # Merge background and foreground
     for c in range(3):
         frame[:,:,c] = frame[:,:,c] * mask + \
             replacement_bg[:,:,c] * mask_inv
