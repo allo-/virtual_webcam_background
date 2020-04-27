@@ -80,13 +80,11 @@ model_path = 'bodypix_mobilenet_float_{0:03d}_model-stride{1}'.format(
 
 # Load the tensorflow model
 print("Loading model...")
-graph_def = tfjs_api.load_graph_model(model_path)
+graph = tfjs_api.load_graph_model(model_path)
 print("done.")
 
 # Setup the tensorflow session
-sess = tf.compat.v1.Session()
-tf.graph_util.import_graph_def(graph_def, name='')
-graph = tf.compat.v1.get_default_graph()
+sess = tf.compat.v1.Session(graph=graph)
 
 input_tensor_names = tfjs_util.get_input_tensors(graph)
 output_tensor_names = tfjs_util.get_output_tensors(graph)

@@ -4,4 +4,4 @@ pillow
 pyyaml
 pyfakewebcam
 opencv-python
-git+https://github.com/patlevin/tfjs-to-tf.git
+tfjs-graph-converter==1.0.0
