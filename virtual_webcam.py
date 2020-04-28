@@ -175,16 +175,19 @@ def mainloop():
         mask = cv2.blur(mask, (blur_value, blur_value))
 
     mask /= 255.
+    mask = np.stack([mask, mask, mask], axis=2)
     mask_inv = 1.0 - mask
 
-    # Filter the foreground
-    frame = filters.apply_filters(frame,
+    # Foreground (with mask)
+    foreground = frame * mask
+    foreground = filters.apply_filters(foreground,
             filters.get_filters(config.get("foreground_filters", [])))
 
+    # Background (without mask)
     replacement_bgs_idx = data.get("replacement_bgs_idx", 0)
-    replacement_bg = np.copy(replacement_bgs[replacement_bgs_idx])
+    background = np.copy(replacement_bgs[replacement_bgs_idx])
 
-    replacement_bg = filters.apply_filters(replacement_bg,
+    background = filters.apply_filters(background,
             filters.get_filters(config.get("background_filters", [])))
 
     background_overlays_idx = data.get("background_overlays_idx", 0)
@@ -192,6 +195,7 @@ def mainloop():
         config.get("background_overlay_image", ""),
         height, width, "overlays", data)
 
+    # Background overlays
     if background_overlays:
         background_overlay = np.copy(
                 background_overlays[background_overlays_idx])
@@ -204,7 +208,7 @@ def mainloop():
         assert(background_overlay.shape[2] == 4)
 
         for c in range(3):
-            replacement_bg[:,:,c] = replacement_bg[:,:,c] * \
+            background[:,:,c] = background[:,:,c] * \
                 (1.0 - background_overlay[:,:,3] / 255.0) + \
                 background_overlay[:,:,c] * (background_overlay[:,:,3] / 255.0)
 
@@ -216,10 +220,8 @@ def mainloop():
                 (background_overlays_idx + 1) % len(background_overlays)
             data["last_frame_background_overlay"] = time.time()
 
-    # Merge background and foreground
-    for c in range(3):
-        frame[:,:,c] = frame[:,:,c] * mask + \
-            replacement_bg[:,:,c] * mask_inv
+    # Merge background and foreground (both with mask)
+    frame = foreground * mask + background * mask_inv
 
     time_since_last_frame = time.time() - data.get("last_frame_bg", 0)
     if time_since_last_frame > 1.0 / config.get("background_fps", 1):
@@ -231,6 +233,7 @@ def mainloop():
     replacement_bg = filters.apply_filters(frame,
             filters.get_filters(config.get("result_filters", [])))
 
+    # Overlays
     overlays_idx = data.get("overlays_idx", 0)
     overlays = load_images(overlays, config.get("overlay_image", ""),
         height, width, "overlays", data)
@@ -257,6 +260,7 @@ def mainloop():
         frame[:,:,1] = mask * 255
         frame[:,:,2] = mask * 255
 
+    frame = frame.astype(np.uint8)
     fakewebcam.schedule_frame(frame)
 
 while True:
