@@ -54,8 +54,6 @@ except for `width` and `height` as the webcam must be reinitialized to change th
 - `real_video_device`: The video device of your webcam, e.g. `/dev/video0`.
 - `average_masks`: Number of masks to average. A higher number will result in afterimages,
   a smaller number in flickering at the boundary between foreground and background.
-- `flip_horizontal`: Flip the input image horizontally.
-- `flip_vertical`: Flip the input image vertically.
 - `background_interpolation_method`: Interpolation method to use. Currently supported methods
   are `BILINEAR` and `NEAREST`. Usually `BILINEAR` is an good option, but for using pixel art
   backgrounds `NEAREST` may look better.
@@ -110,6 +108,9 @@ The current filters and their options are:
   - `r`, `g`, `b`: RGB values.
 - `color_filter`: Change the color levels by multiplying the RGB values with a factor between `0` and `255`.
   - `r`, `g`, `b`: The factors for the colors red/green/blue.
+- `flip`: Flip the image horizontally or vertically.
+  - `horizontal`: Flip horizontally.
+  - `vertical`: Flip vertically.
 
 ## Animations
 

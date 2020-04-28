@@ -101,11 +101,6 @@ def mainloop():
     # BGR to RGB
     frame = frame[...,::-1]
 
-    if config.get("flip_horizontal"):
-        frame = cv2.flip(frame, 1)
-    if config.get("flip_vertical"):
-        frame = cv2.flip(frame, 0)
-
     image_name = config.get("background_image", "background.jpg")
     replacement_bgs = load_images(replacement_bgs, image_name,
         height, width, "replacement_bgs", data,
@@ -158,7 +153,7 @@ def mainloop():
     num_average_masks = max(1, config.get("average_masks", 3))
     masks = masks[:num_average_masks]
     mask = np.mean(masks, axis=0)
-    mask *= 255
+    mask = (mask * 255).astype(np.uint8)
 
     dilate_value = config.get("dilate", 0)
     erode_value = config.get("erode", 0)
@@ -174,12 +169,8 @@ def mainloop():
     if blur_value:
         mask = cv2.blur(mask, (blur_value, blur_value))
 
-    mask /= 255.
-    mask = np.stack([mask, mask, mask], axis=2)
-    mask_inv = 1.0 - mask
-
     # Foreground (with mask)
-    foreground = frame * mask
+    foreground = np.append(frame, np.expand_dims(mask, axis=2), axis=2)
     foreground = filters.apply_filters(foreground,
             filters.get_filters(config.get("foreground_filters", [])))
 
@@ -221,7 +212,11 @@ def mainloop():
             data["last_frame_background_overlay"] = time.time()
 
     # Merge background and foreground (both with mask)
-    frame = foreground * mask + background * mask_inv
+    mask = foreground[:,:,3].astype(np.float)
+    mask /= 255.
+    mask = np.expand_dims(mask, axis=2)
+    mask_inv = 1.0 - mask
+    frame = foreground[:,:,:3] * mask + background[:,:,:3] * mask_inv
 
     time_since_last_frame = time.time() - data.get("last_frame_bg", 0)
     if time_since_last_frame > 1.0 / config.get("background_fps", 1):

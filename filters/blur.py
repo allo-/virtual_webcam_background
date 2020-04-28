@@ -7,6 +7,8 @@ def blur(intensity_x=5, intensity_y=-1, *args, **kwargs):
         return frame
     if intensity_y < 0:
         intensity_y = intensity_x
-    return cv2.blur(frame, (intensity_x, intensity_y))
+    # Do not blur the alpha channel
+    frame[:,:,:3] = cv2.blur(frame[:,:,:3], (intensity_x, intensity_y))
+    return frame
 
 filters.register_filter("blur", blur)

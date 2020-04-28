@@ -1,10 +1,13 @@
 import cv2
 import filters
+import numpy as np
 
 def single_color(r=255.0, g=255.0, b=255.0, *args, **kwargs):
     frame = kwargs['frame']
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+    frame = kwargs['frame']
+    gray_frame = cv2.cvtColor(frame[:,:,:3], cv2.COLOR_BGR2GRAY)
+    gray_frame = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2BGR)
+    frame[:,:,:3] = gray_frame
     kwargs['frame'] = frame
     return color_filter(r=r, g=g, b=b, *args, **kwargs)
 

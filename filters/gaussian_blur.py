@@ -12,6 +12,8 @@ def gaussian_blur(intensity_x=5, intensity_y=-1, *args, **kwargs):
     if (intensity_y % 2) == 0:
         intensity_y += 1
 
-    return cv2.GaussianBlur(frame, (intensity_x, intensity_y), 0)
+    frame[:,:,:3] = cv2.GaussianBlur(frame[:,:,3],
+            (intensity_x, intensity_y), 0)
+    return frame
 
 filters.register_filter("gaussian_blur", gaussian_blur)

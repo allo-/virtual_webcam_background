@@ -9,7 +9,6 @@ def noise(*args, **kwargs):
     frame[indices,0] = 255
     frame[indices,1] = 255
     frame[indices,2] = 255
-    #noise[indices,3] = 255
 
     return frame
 
