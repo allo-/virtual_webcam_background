@@ -111,6 +111,10 @@ The current filters and their options are:
 - `flip`: Flip the image horizontally or vertically.
   - `horizontal`: Flip horizontally.
   - `vertical`: Flip vertically.
+- `stripes`: Add a semi-transparent stripe effect with darker and lighter stripes.
+  - `width`: Width of a stripe.
+  - `intensity`: Intensity how much darker/lighter the stripe is.
+  - `speed`: Speed at which the stripes move across the image.
 
 ## Animations
 
