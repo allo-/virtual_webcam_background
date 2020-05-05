@@ -71,9 +71,8 @@ fakewebcam = FakeWebcam(config.get("virtual_video_device"), width, height)
 # - Stride 8 or 16
 # internal_resolution: 0.25, 0.5, 0.75, 1.0
 
-output_stride = 16
-internal_resolution = 0.5
-multiplier = 0.5
+output_stride = config.get("stride", 16)
+multiplier = config.get("multiplier", 0.5)
 
 model_path = 'bodypix_mobilenet_float_{0:03d}_model-stride{1}'.format(
     int(100 * multiplier), output_stride)
@@ -111,6 +110,7 @@ def mainloop():
         replacement_bgs = [np.copy(frame)]
 
     input_height, input_width = frame.shape[:2]
+    internal_resolution = config.get("internal_resolution", 0.5)
 
     target_height, target_width = to_input_resolution_height_and_width(
         internal_resolution, output_stride, input_height, input_width)

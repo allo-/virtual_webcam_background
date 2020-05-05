@@ -34,7 +34,8 @@ If you have a Nvidia graphics card, you may want to install CUDA for better perf
 ## Configuration
 
 To configure the virtual webcam, edit `config.yaml`. Most options are applied instantly,
-except for `width` and `height` as the webcam must be reinitialized to change them.
+except for `width` and `height` as the webcam must be reinitialized to change them and
+`multiplier` and `output_stride` as the model must be reloaded to apply them.
 
 - `width`: The input resolution width.
 - `height`: The input resolution height.
@@ -59,6 +60,12 @@ except for `width` and `height` as the webcam must be reinitialized to change th
   backgrounds `NEAREST` may look better.
 - `debug_show_mask`: Debug option to show the mask, that can be used to configure
   blur/dilate/erode correctly.
+- `multiplier`: Multiplier parameter of the model (0.5, 0.75 or 1.0). You need to download the
+  matching model when you change this parameter.
+- `output_stride`: Stride parameter of the model (16 or 8). You need to download the matching model
+  when you change the parameter.
+- `internal_resolution`: Resolution factor (between 0.0 and 1.0) for the model input. Smaller is
+  faster and less accurate. Note that 1.0 does not always give the best results.
 
 Note: Input `width` and `height` are autodetected when they are not set in the config,
 but this can lead to bad default values, e.g. `640x480` even when the camera supports
