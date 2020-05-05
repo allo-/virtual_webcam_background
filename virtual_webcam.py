@@ -63,6 +63,16 @@ if config.get("height"):
 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
+crop_top = config.get("crop_top", 0)
+crop_bottom = config.get("crop_bottom", height)
+crop_left = config.get("crop_left", 0)
+crop_right = config.get("crop_right", width)
+
+height = crop_bottom - crop_top
+width = crop_right - crop_left
+
+assert width > 0 and height > 0
+
 # Initialize a fake video device with the same resolution as the real device
 fakewebcam = FakeWebcam(config.get("virtual_video_device"), width, height)
 
@@ -99,6 +109,11 @@ def mainloop():
         sys.exit(1)
     # BGR to RGB
     frame = frame[...,::-1]
+
+    # Crop
+    frame = frame[crop_top:crop_bottom,crop_left:crop_right]
+
+    # Change from uint8 to float for further processing
     frame = frame.astype(np.float)
 
     image_name = config.get("background_image", "background.jpg")
