@@ -100,6 +100,7 @@ def mainloop():
         sys.exit(1)
     # BGR to RGB
     frame = frame[...,::-1]
+    frame = frame.astype(np.float)
 
     image_name = config.get("background_image", "background.jpg")
     replacement_bgs = load_images(replacement_bgs, image_name,
