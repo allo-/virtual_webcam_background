@@ -251,9 +251,7 @@ def mainloop():
             data["last_frame_overlay"] = time.time()
 
     if config.get("debug_show_mask", False):
-        frame[:,:,0] = mask * 255
-        frame[:,:,1] = mask * 255
-        frame[:,:,2] = mask * 255
+        frame[:,:] = mask * 255
 
     frame = frame.astype(np.uint8)
     fakewebcam.schedule_frame(frame)
