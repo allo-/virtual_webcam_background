@@ -225,7 +225,7 @@ def mainloop():
         data["last_frame_bg"] = time.time()
 
     # Filter the result
-    replacement_bg = filters.apply_filters(frame,
+    frame = filters.apply_filters(frame,
             filters.get_filters(config.get("result_filters", [])))
 
     # Overlays
