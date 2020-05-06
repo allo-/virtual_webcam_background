@@ -185,7 +185,7 @@ def mainloop():
     if blur_value:
         mask = cv2.blur(mask, (blur_value, blur_value))
 
-    # Foreground (with mask)
+    # Foreground (with the mask in the alpha channel)
     foreground = np.append(frame, np.expand_dims(mask, axis=2), axis=2)
     foreground = filters.apply_filters(foreground,
             filter_instances['foreground'])
@@ -228,7 +228,7 @@ def mainloop():
             data["last_frame_background_overlay"] = time.time()
 
     # Merge background and foreground (both with mask)
-    mask = foreground[:,:,3].astype(np.float)
+    mask = foreground[:,:,3].astype(np.float) # get the mask from the alpha channel
     mask /= 255.
     mask = np.expand_dims(mask, axis=2)
     mask_inv = 1.0 - mask
