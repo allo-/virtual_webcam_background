@@ -12,6 +12,7 @@ def load_config(data, oldconfig={}):
     """
 
     config = oldconfig
+    changed = False
     try:
         if os.stat("config.yaml").st_mtime != data.get("config_mtime"):
             print("Reloading config.")
@@ -25,9 +26,10 @@ def load_config(data, oldconfig={}):
                 if key.endswith("_mtime"):
                     data[key] = 0
             data["config_mtime"] = os.stat("config.yaml").st_mtime
+            changed = True
     except OSError:
         pass
-    return config
+    return config, changed
 
 
 def load_images(images, image_name, height, width, imageset_name, data,
@@ -42,6 +44,7 @@ def load_images(images, image_name, height, width, imageset_name, data,
         The function only reloads the image(s) when the mtime of the file
         or folder is changed.
     """
+    changed = False
     try:
         replacement_stat = os.stat(image_name)
         if replacement_stat.st_mtime != data.get(imageset_name + "_mtime"):
@@ -52,7 +55,7 @@ def load_images(images, image_name, height, width, imageset_name, data,
             if stat.S_ISDIR(replacement_stat.st_mode):
                 filenames = glob.glob(filenames[0] + "/*.*")
                 if not filenames:
-                    return None
+                    return None, True
 
             images = []
             for filename in filenames:
@@ -75,10 +78,11 @@ def load_images(images, image_name, height, width, imageset_name, data,
                 for image_filter in image_filters:
                     images[i] = image_filter(frame=images[i])
             print("Finished loading images.")
+            changed = True
 
-        return images
+        return images, changed
 
     except OSError:
-        return None
+        return None, True
 
 

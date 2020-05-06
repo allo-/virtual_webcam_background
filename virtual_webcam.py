@@ -37,7 +37,17 @@ background_overlays = None
 masks = []
 
 # Load the config
-config = load_config(data)
+config, _ = load_config(data)
+
+def reload_filters(config):
+    filter_instances = {}
+    for name in ["background", "background_overlay", "foreground",
+            "overlay", "result"]:
+        filter_instances[name] = filters.get_filters(
+                config.get(name + "_filters", []))
+    return filter_instances
+
+filter_instances = reload_filters(config)
 
 ### End global variables ####
 
@@ -92,7 +102,12 @@ input_tensor = graph.get_tensor_by_name(input_tensor_names[0])
 
 def mainloop():
     global config, masks, replacement_bgs, overlays, background_overlays
-    config = load_config(data, config)
+    global filter_instances
+
+    config, config_changed = load_config(data, config)
+    if config_changed:
+        filter_instances = reload_filters(config)
+
     success, frame = cap.read()
     if not success:
         print("Error getting a webcam image!")
@@ -102,7 +117,7 @@ def mainloop():
     frame = frame.astype(np.float)
 
     image_name = config.get("background_image", "background.jpg")
-    replacement_bgs = load_images(replacement_bgs, image_name,
+    replacement_bgs, _ = load_images(replacement_bgs, image_name,
         height, width, "replacement_bgs", data,
         config.get("background_interpolation_method"))
 
@@ -173,17 +188,17 @@ def mainloop():
     # Foreground (with mask)
     foreground = np.append(frame, np.expand_dims(mask, axis=2), axis=2)
     foreground = filters.apply_filters(foreground,
-            filters.get_filters(config.get("foreground_filters", [])))
+            filter_instances['foreground'])
 
     # Background (without mask)
     replacement_bgs_idx = data.get("replacement_bgs_idx", 0)
     background = np.copy(replacement_bgs[replacement_bgs_idx])
 
     background = filters.apply_filters(background,
-            filters.get_filters(config.get("background_filters", [])))
+            filter_instances['background'])
 
     background_overlays_idx = data.get("background_overlays_idx", 0)
-    background_overlays = load_images(background_overlays,
+    background_overlays, _ = load_images(background_overlays,
         config.get("background_overlay_image", ""),
         height, width, "overlays", data)
 
@@ -194,7 +209,7 @@ def mainloop():
 
         # Filter the overlay
         background_overlay = filters.apply_filters(background_overlay,
-            filters.get_filters(config.get("background_overlay_filters", [])))
+            filter_instances['background_overlay'])
 
         # The image has an alpha channel
         assert(background_overlay.shape[2] == 4)
@@ -227,11 +242,11 @@ def mainloop():
 
     # Filter the result
     frame = filters.apply_filters(frame,
-            filters.get_filters(config.get("result_filters", [])))
+            filter_instances['result'])
 
     # Overlays
     overlays_idx = data.get("overlays_idx", 0)
-    overlays = load_images(overlays, config.get("overlay_image", ""),
+    overlays, _ = load_images(overlays, config.get("overlay_image", ""),
         height, width, "overlays", data)
 
     if overlays:
@@ -239,7 +254,7 @@ def mainloop():
 
         # Filter the overlay
         overlay = filters.apply_filters(overlay,
-            filters.get_filters(config.get("overlay_filters", [])))
+            filter_instances['overlay'])
 
         assert(overlay.shape[2] == 4) # The image has an alpha channel
         for c in range(3):

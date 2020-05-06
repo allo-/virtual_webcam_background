@@ -1,15 +1,21 @@
 import filters
 import numpy as np
 
-position_x = 0
-position_y = 0
 
-def roll(speed_x=10, speed_y=0, *args, **kwargs):
-    global position_x, position_y
-    frame = kwargs['frame']
-    position_x = (position_x + speed_x) % frame.shape[1]
-    position_y = (position_y + speed_y) % frame.shape[0]
-    return np.roll(frame,
-        shift=(position_x, position_y), axis=(1, 0))
+class Roll:
+    def __init__(self, speed_x, speed_y, *args, **kwargs):
+        self.position_x = 0
+        self.position_y = 0
+        self.speed_x = speed_x
+        self.speed_y = speed_y
 
-filters.register_filter("roll", roll)
+    def apply(self, *args, **kwargs):
+        frame = kwargs['frame']
+        self.position_x = (self.position_x + self.speed_x) % frame.shape[1]
+        self.position_y = (self.position_y + self.speed_y) % frame.shape[0]
+        return np.roll(frame,
+                       shift=(self.position_x, self.position_y),
+                       axis=(1, 0))
+
+
+filters.register_filter("roll", Roll)
