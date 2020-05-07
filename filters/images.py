@@ -62,7 +62,7 @@ class Image:
 
     def apply(self, *args, **kwargs):
         self.reload_image()
-        return self.image
+        return self.image.copy()
 
 
 class ImageSequence:
@@ -92,7 +92,7 @@ class ImageSequence:
 
     def apply(self, *args, **kwargs):
         self.reload_images()
-        frame = self.images[self.idx]
+        frame = self.images[self.idx].copy()
         if time.time() - self.last_frame_time > 1.0 / self.fps:
             self.idx = (self.idx + 1) % len(self.images)
             self.last_frame_time = time.time()
