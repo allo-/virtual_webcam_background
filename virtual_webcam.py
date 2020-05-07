@@ -73,6 +73,8 @@ if config.get("height"):
 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
+config['width'], config['height'] = width, height
+
 # Initialize a fake video device with the same resolution as the real device
 fakewebcam = FakeWebcam(config.get("virtual_video_device"), width, height)
 
