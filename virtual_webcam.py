@@ -43,7 +43,7 @@ def reload_filters(config):
     filter_instances = {}
     for name in ["background", "background_overlay", "foreground",
             "overlay", "result"]:
-        filter_instances[name] = filters.get_filters(
+        filter_instances[name] = filters.get_filters(config,
                 config.get(name + "_filters", []))
     return filter_instances
 

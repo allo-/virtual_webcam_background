@@ -10,7 +10,7 @@ def get_filter(name):
     return filters.get(name, None)
 
 
-def get_filters(filter_list):
+def get_filters(config, filter_list):
     image_filters = []
     for filters_item in filter_list:
         if type(filters_item) == str:
@@ -36,7 +36,7 @@ def get_filters(filter_list):
             if not image_filter_class:
                 continue
 
-            image_filters.append(image_filter_class(*_args, **_kwargs))
+            image_filters.append(image_filter_class(config=config, *_args, **_kwargs))
     return image_filters
 
 
