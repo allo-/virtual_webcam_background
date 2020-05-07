@@ -39,7 +39,7 @@ def reload_images(images_path, mtime, width, height, interpolation_method):
 
 
 class Image:
-    def __init__(self, image_path, interpolation_method="NEAREST",
+    def __init__(self, image_path, interpolation_method="LINEAR",
                  *args, **kwargs):
         config = kwargs['config']
         self.width = config.get("width")
@@ -66,7 +66,7 @@ class Image:
 
 
 class ImageSequence:
-    def __init__(self, images_path, fps=10, interpolation_method="NEAREST",
+    def __init__(self, images_path, fps=10, interpolation_method="LINEAR",
                  *args, **kwargs):
         config = kwargs['config']
         self.width = config.get("width")
