@@ -43,21 +43,11 @@ except for `width` and `height` as the webcam must be reinitialized to change th
 - `blur`: Blur factor for the mask to smooth the edges.
 - `dilate`: Number of pixels the mask is shrunk to remove spots.
 - `erode`: Number of pixels the mask is grown after shrinking to capture the full body image again.
-- `background_filters`: Filters applied to the background or virtual background.
-- `foreground_filters`: Filters applied to the detected foreground.
-- `result_filters`: Filters applied to the result image.
-- `background_image`: Filename of an image file or a directory containing images for an animation.
-- `overlay_image`: Filename of an image file with alpha channel (transparency) or a directory
-  containing images for an animation.
-- `background_fps`: Maximal framerate for the animation of the background image.
-- `overlay_fps`: Maximal framerate for the animation of the overlay image.
-- `virtual_video_device`: The virtual video device, e.g., `/dev/video2`.
 - `real_video_device`: The video device of your webcam, e.g. `/dev/video0`.
 - `average_masks`: Number of masks to average. A higher number will result in afterimages,
   a smaller number in flickering at the boundary between foreground and background.
-- `background_interpolation_method`: Interpolation method to use. Currently supported methods
-  are `BILINEAR` and `NEAREST`. Usually `BILINEAR` is an good option, but for using pixel art
-  backgrounds `NEAREST` may look better.
+- `layers`: A list of videos layers like the input webcam image, the segmented foreground,
+  virtual backgrounds or image overlays.
 - `debug_show_mask`: Debug option to show the mask, that can be used to configure
   blur/dilate/erode correctly.
 - `multiplier`: Multiplier parameter of the model (0.5, 0.75 or 1.0). You need to download the
@@ -68,36 +58,70 @@ except for `width` and `height` as the webcam must be reinitialized to change th
   faster and less accurate. Note that 1.0 does not always give the best results.
 
 Note: Input `width` and `height` are autodetected when they are not set in the config,
-but this can lead to bad default values, e.g. `640x480` even when the camera supports
+but this can lead to bad default values, e.g., `640x480` even when the camera supports
 a resolution of `1280x720`.
+
+## Layers
+
+The layers option contains one image source and a list of filters. The image sources are:
+
+- `input`: The webcam image
+- `foreground`: The foreground of the image, i.e., the person.
+- `previous`: The image composed of all previous layers.
+- `empty`: A transparent image.
+
+Each layer has a list of filters, that are applied in the given order.
+After all filters are applied, the layer is merged with the previous layers.
 
 ## Filters
 
-The `background_filters` option is a list of filters that will be applied after each other.
+Each layer has a list of filters.
+A simple example that converts the background to grayscale and blurs it looks like this:
 
-A simple example that converts the background to grayscale and blurs it:
+	  - input: ["grayscale", "blur"]
 
-```
-- background_filters = ["grayscale", "blur"]
-```
+Some filters have arguments. To change the blur value in the filter list above,
+you can use onf of these syntax variants:
 
-Some filters have arguments. To change the blur value in the filter list above, use
+- Flat list: `["grayscale", ["blur", 10, 10]]`
+- Argument list: `["grayscale", ["blur", [10, 10]]]`
+- Keyword arguments: `["grayscale", ["blur", {intensity_x: 10, intensity_y: 10}]]`
 
-```
-- background_filters = ["grayscale", ["blur", 10, 10]]
-```
 
-Alternative syntax variants:
+## Example Layers
 
-```
-- background_filters = ["grayscale", ["blur", [10, 10]]]
-- background_filters = ["grayscale", ["blur", {intensity_x: 10, intensity_y: 10}]]
-```
+#### A virtual background
+
+	- layers:
+	  - empty: [["image", "background.jpg"]]
+	  - foreground: []
+
+#### Blurred background
+
+	- layers:
+	  - input: [["blur", 10]]
+	  - foreground: []
+
+#### Blurred background and a moving fog overlay
+
+	- layers:
+	  - input: [["blur", 10]]
+	  - foreground: []
+	  - previous: [["image", "images/fog.jpg"], ["roll", 5, 0]]
 
 ### Filters
 
 The current filters and their options are:
 
+- `image`: Returns a static image, e.g., to use a virtual background.
+  - `image_path`: The path to the image file.
+  - `interpolation_method`: The interpolation method. Currently are `LINEAR` and `NEAREST` supported and `LINEAR` is the default.
+    When you use a pixel art background, it may look better with `NEAREST`.
+- `image_sequence`: Returns images from an image sequence. This can be used for animated backgrounds or overlays.
+  - `images_path`: A path to a folder containing the images. The folder must only contain images and they must have the correct order
+    when they are sorted by filename.
+  - `fps`: The frames per second of the animation.
+  - `interpolation_method`: `LINEAR` or `NEAREST` interpolation
 - `blur`: Blur the image.i
   - `intensity_x`: The intensity in the x direction.
   - `intensity_y`: The intensity in the y direction. When only `intensity_x` is given, it will be used for `intensity_y` as well.
@@ -135,16 +159,14 @@ Example for creating an animation from a short video:
     cd animation
     ffmpeg -i ../animation.gif -vf fps=10 out%04d.png
 
-Animations currently run at the framerate of the virtual webcam, so their speed depends on the framerate
-that your computer is able to achieve for the virtual webcam. When using the `ffmpeg` command, you can
-adapt the framerate of the video to the framerate of the virtual webcam using the `fps` parameter.
+When using the `ffmpeg` command, you can change the framerate of the video using the `fps` parameter.
 
 Note that the script loads all images of an animation into RAM scaled to the resolution of your webcam, so
 using too long animations is not a good idea.
 
 ## Advanced
 
-You can try alternative models by editing the source code.
+You can try alternative neural network models by editing the source code.
 
 To download other models get the full `get-model.sh` script from [https://github.com/ajaichemmanam/simple\_bodypix\_python](https://github.com/ajaichemmanam/simple_bodypix_python) and run it with one of these combinations:
 

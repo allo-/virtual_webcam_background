@@ -1,12 +1,10 @@
 segmentation_threshold: 0.75
-blur: 15
-erode: 50
-dilate: 45
-background_filters: []
-foreground_filters: []
-result_filters: []
-background_image: "background.jpg"
-debug_show_mask: false
-virtual_video_device: "/dev/video2"
-real_video_device: "/dev/video0"
+blur: 3
+erode: 10
+dilate: 10
+virtual_video_device: "/dev/video0"
+real_video_device: "/dev/video1"
 average_masks: 3
+layers:
+  - "empty": [["image", "background.jpg"]]
+  - "foreground": []

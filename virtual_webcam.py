@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 
-import tensorflow as tf
-import cv2
 import sys
+import time
+import os
+import yaml
+
+import tensorflow as tf
 import tfjs_graph_converter.api as tfjs_api
 import tfjs_graph_converter.util as tfjs_util
+
 import numpy as np
-import time
+import cv2
 from pyfakewebcam import FakeWebcam
 
 from bodypix_functions import calc_padding
@@ -15,41 +19,51 @@ from bodypix_functions import to_input_resolution_height_and_width
 from bodypix_functions import to_mask_tensor
 
 import filters
-from loader import load_config, load_images
 
-# Default config values
-config = {}
 
-data = {}
+def load_config(config_mtime, oldconfig={}):
+    """
+        Load the config file. This only reads the file,
+        when its mtime is changed.
+    """
 
-### Global variables ###
+    config = oldconfig
+    try:
+        config_mtime_new = os.stat("config.yaml").st_mtime
+        if config_mtime_new != config_mtime:
+            print("Reloading config.")
+            config = {}
+            with open("config.yaml", "r") as configfile:
+                yconfig = yaml.load(configfile, Loader=yaml.SafeLoader)
+                for key in yconfig:
+                    config[key] = yconfig[key]
+            config_mtime = config_mtime_new
+    except OSError:
+        pass
+    return config, config_mtime
 
-# Background frames and the current index in the list
-# when the background is a animation
-replacement_bgs = None
 
-# Overlays
-overlays = None
-background_overlays = None
+def reload_layers(config):
+    layers = []
+    for layer_filters in config.get("layers", []):
+        assert(type(layer_filters) == dict)
+        assert(len(layer_filters) == 1)
+        layer_type = list(layer_filters.keys())[0]
+        layer_filters = layer_filters[layer_type]
+        layers.append((layer_type, filters.get_filters(config, layer_filters)))
+    return layers
+
+
+# ### Global variables ###
 
 # The last mask frames are kept to average the actual mask
 # to reduce flickering
 masks = []
 
 # Load the config
-config, _ = load_config(data)
+config, config_mtime = load_config(0)
 
-def reload_filters(config):
-    filter_instances = {}
-    for name in ["background", "background_overlay", "foreground",
-            "overlay", "result"]:
-        filter_instances[name] = filters.get_filters(config,
-                config.get(name + "_filters", []))
-    return filter_instances
-
-filter_instances = reload_filters(config)
-
-### End global variables ####
+# ### End global variables ####
 
 
 # Set allow_growth for all GPUs
@@ -67,7 +81,6 @@ if config.get("width"):
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.get("width"))
 if config.get("height"):
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.get("height"))
-# cap.set(cv2.CAP_PROP_FPS, 30)
 
 # Get the actual resolution (either webcam default or the configured one)
 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -101,14 +114,19 @@ input_tensor_names = tfjs_util.get_input_tensors(graph)
 output_tensor_names = tfjs_util.get_output_tensors(graph)
 input_tensor = graph.get_tensor_by_name(input_tensor_names[0])
 
+# Initialize layers
+layers = reload_layers(config)
+
 
 def mainloop():
-    global config, masks, replacement_bgs, overlays, background_overlays
-    global filter_instances
+    global config, masks, layers, config_mtime
 
-    config, config_changed = load_config(data, config)
-    if config_changed:
-        filter_instances = reload_filters(config)
+    config, config_mtime_new = load_config(config_mtime, config)
+    if config_mtime != config_mtime_new:
+        config['width'] = width
+        config['height'] = height
+        layers = reload_layers(config)
+        config_mtime = config_mtime_new
 
     success, frame = cap.read()
     if not success:
@@ -117,14 +135,6 @@ def mainloop():
     # BGR to RGB
     frame = frame[...,::-1]
     frame = frame.astype(np.float)
-
-    image_name = config.get("background_image", "background.jpg")
-    replacement_bgs, _ = load_images(replacement_bgs, image_name,
-        height, width, "replacement_bgs", data,
-        config.get("background_interpolation_method"))
-
-    if not replacement_bgs:
-        replacement_bgs = [np.copy(frame)]
 
     input_height, input_width = frame.shape[:2]
     internal_resolution = config.get("internal_resolution", 0.5)
@@ -142,8 +152,8 @@ def mainloop():
     resized_height, resized_width = resized_frame.shape[:2]
 
     # Preprocessing for resnet
-    #m = np.array([-123.15, -115.90, -103.06])
-    #resized_frame = np.add(resized_frame, m)
+    # m = np.array([-123.15, -115.90, -103.06])
+    # resized_frame = np.add(resized_frame, m)
 
     # Preprocessing for mobilenet
     resized_frame = np.divide(resized_frame, 127.5)
@@ -151,8 +161,7 @@ def mainloop():
     sample_image = resized_frame[tf.newaxis, ...]
 
     results = sess.run(output_tensor_names,
-        feed_dict={input_tensor: sample_image})
-    segments = np.squeeze(results[1], 0)
+                       feed_dict={input_tensor: sample_image})
 
     segment_logits = results[1]
     scaled_segment_scores = scale_and_crop_to_input_tensor_shape(
@@ -161,15 +170,15 @@ def mainloop():
     )
 
     mask = to_mask_tensor(scaled_segment_scores,
-        config.get("segmentation_threshold", 0.75))
-    mask = tf.dtypes.cast(mask, tf.int32)
+                          config.get("segmentation_threshold", 0.75))
     mask = np.reshape(mask, mask.shape[:2])
 
     # Average over the last N masks to reduce flickering
     # (at the cost of seeing afterimages)
-    masks.insert(0, mask)
     num_average_masks = max(1, config.get("average_masks", 3))
+    masks.insert(0, mask)
     masks = masks[:num_average_masks]
+
     mask = np.mean(masks, axis=0)
     mask = (mask * 255).astype(np.uint8)
 
@@ -179,104 +188,60 @@ def mainloop():
 
     if dilate_value:
         mask = cv2.dilate(mask,
-            np.ones((dilate_value, dilate_value), np.uint8), iterations=1)
+                          np.ones((dilate_value, dilate_value), np.uint8),
+                          iterations=1)
     if erode_value:
         mask = cv2.erode(mask,
-            np.ones((erode_value, erode_value),
-            np.uint8), iterations=1)
+                         np.ones((erode_value, erode_value),
+                                 np.uint8), iterations=1)
     if blur_value:
         mask = cv2.blur(mask, (blur_value, blur_value))
 
-    # Foreground (with the mask in the alpha channel)
-    foreground = np.append(frame, np.expand_dims(mask, axis=2), axis=2)
-    foreground = filters.apply_filters(foreground,
-            filter_instances['foreground'])
+    frame = np.append(frame, np.expand_dims(mask, axis=2), axis=2)
 
-    # Background (without mask)
-    replacement_bgs_idx = data.get("replacement_bgs_idx", 0)
-    background = np.copy(replacement_bgs[replacement_bgs_idx])
+    input_frame = frame.copy()
+    frame = np.zeros(input_frame.shape)
+    for layer_type, layer_filters in layers:
+        # Initialize the layer frame
+        layer_frame = np.zeros(frame.shape)  # transparent black
+        if layer_type == "foreground":
+            layer_frame = input_frame.copy()
+        elif layer_type == "input":
+            layer_frame = input_frame.copy()
+            # make the frame opaque
+            layer_frame[:,:,3] = 255 * np.ones(input_frame.shape[:2])
+        elif layer_type == "previous":
+            layer_frame = frame.copy()
+            # make the frame opaque
+            layer_frame[:,:,3] = 255 * np.ones(input_frame.shape[:2])
+        elif layer_type == "empty":
+            pass
 
-    background = filters.apply_filters(background,
-            filter_instances['background'])
+        layer_frame = filters.apply_filters(layer_frame, layer_filters)
+        if layer_frame.shape[2] == 4:
+            transparency = layer_frame[:,:,3] / 255.0
+            transparency = np.expand_dims(transparency, axis=2)
+            frame[:,:,:3] = frame[:,:,:3] * \
+                (1.0 - transparency) + layer_frame[:,:,:3] * transparency
+        else:
+            frame[:,:,:3] = layer_frame[:,:,:3].copy()
 
-    background_overlays_idx = data.get("background_overlays_idx", 0)
-    background_overlays, _ = load_images(background_overlays,
-        config.get("background_overlay_image", ""),
-        height, width, "overlays", data)
-
-    # Background overlays
-    if background_overlays:
-        background_overlay = np.copy(
-                background_overlays[background_overlays_idx])
-
-        # Filter the overlay
-        background_overlay = filters.apply_filters(background_overlay,
-            filter_instances['background_overlay'])
-
-        # The image has an alpha channel
-        assert(background_overlay.shape[2] == 4)
-
-        for c in range(3):
-            background[:,:,c] = background[:,:,c] * \
-                (1.0 - background_overlay[:,:,3] / 255.0) + \
-                background_overlay[:,:,c] * (background_overlay[:,:,3] / 255.0)
-
-        time_since_last_frame = time.time() - \
-            data.get("last_frame_background_overlay", 0)
-        if time_since_last_frame > 1.0 / \
-                config.get("background_overlay_fps", 1):
-            data["background_overlays_idx"] = \
-                (background_overlays_idx + 1) % len(background_overlays)
-            data["last_frame_background_overlay"] = time.time()
-
-    # Merge background and foreground (both with mask)
-    mask = foreground[:,:,3].astype(np.float) # get the mask from the alpha channel
-    mask /= 255.
-    mask = np.expand_dims(mask, axis=2)
-    mask_inv = 1.0 - mask
-    frame = foreground[:,:,:3] * mask + background[:,:,:3] * mask_inv
-
-    time_since_last_frame = time.time() - data.get("last_frame_bg", 0)
-    if time_since_last_frame > 1.0 / config.get("background_fps", 1):
-        data["replacement_bgs_idx"] = \
-            (replacement_bgs_idx + 1) % len(replacement_bgs)
-        data["last_frame_bg"] = time.time()
-
-    # Filter the result
-    frame = filters.apply_filters(frame,
-            filter_instances['result'])
-
-    # Overlays
-    overlays_idx = data.get("overlays_idx", 0)
-    overlays, _ = load_images(overlays, config.get("overlay_image", ""),
-        height, width, "overlays", data)
-
-    if overlays:
-        overlay = np.copy(overlays[overlays_idx])
-
-        # Filter the overlay
-        overlay = filters.apply_filters(overlay,
-            filter_instances['overlay'])
-
-        assert(overlay.shape[2] == 4) # The image has an alpha channel
-        for c in range(3):
-            frame[:,:,c] = frame[:,:,c] * (1.0 - overlay[:,:,3] / 255.0) + \
-                overlay[:,:,c] * (overlay[:,:,3] / 255.0)
-
-        time_since_last_frame = time.time() - data.get("last_frame_overlay", 0)
-        if time_since_last_frame > 1.0 / config.get("overlay_fps", 1):
-            data["overlays_idx"] = (overlays_idx + 1) % len(overlays)
-            data["last_frame_overlay"] = time.time()
+    # Remove alpha channel
+    frame = frame[:,:,:3]
 
     if config.get("debug_show_mask", False):
-        frame[:,:] = mask * 255
+        frame[:,:,0] = mask
+        frame[:,:,1] = mask
+        frame[:,:,2] = mask
 
     frame = frame.astype(np.uint8)
     fakewebcam.schedule_frame(frame)
 
-while True:
-    try:
-        mainloop()
-    except KeyboardInterrupt:
-        print("stopping.")
-        break
+
+if __name__ == "__main__":
+    while True:
+        try:
+            mainloop()
+        except KeyboardInterrupt:
+            print("stopping.")
+            break
