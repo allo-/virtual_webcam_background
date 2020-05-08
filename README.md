@@ -118,9 +118,14 @@ The current filters and their options are:
   - `interpolation_method`: The interpolation method. Currently are `LINEAR` and `NEAREST` supported and `LINEAR` is the default.
     When you use a pixel art background, it may look better with `NEAREST`.
 - `image_sequence`: Returns images from an image sequence. This can be used for animated backgrounds or overlays.
-  - `images_path`: A path to a folder containing the images. The folder must only contain images and they must have the correct order
+  - `images_path`: The path to a folder containing the images. The folder must only contain images and they must have the correct order
     when they are sorted by filename.
   - `fps`: The frames per second of the animation.
+  - `interpolation_method`: `LINEAR` or `NEAREST` interpolation
+- `video`: Returns images from a video. This can be used for animated backgrounds or overlays.
+  - `video_path`: The path to the video.
+  - `target_fps`: The target frames per second of image sequence generated from the video.
+    This can be used to reduce the RAM usage.
   - `interpolation_method`: `LINEAR` or `NEAREST` interpolation
 - `blur`: Blur the image.i
   - `intensity_x`: The intensity in the x direction.

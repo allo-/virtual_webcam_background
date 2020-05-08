@@ -60,3 +60,4 @@ from . import noise
 from . import transformations
 from . import stripes
 from . import images
+from . import video
