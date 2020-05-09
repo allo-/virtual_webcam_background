@@ -151,6 +151,11 @@ The current filters and their options are:
   - `width`: Width of a stripe.
   - `intensity`: Intensity how much darker/lighter the stripe is.
   - `speed`: Speed at which the stripes move across the image.
+- `chroma_key`: Convert a color to transparency (green screen effect).
+  - `r`: Red channel of the color.
+  - `g`: Green channel of the color.
+  - `b`: Blue channel of the color.
+  - `fuzz`: Factor for fuzzy matching of similar colors.
 
 ## Animations
 
