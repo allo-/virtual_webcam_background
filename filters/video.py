@@ -4,6 +4,7 @@ import os
 import stat
 import glob
 import time
+import numpy as np
 
 
 def reload_video(video_path, mtime, width, height,
@@ -45,7 +46,10 @@ def reload_video(video_path, mtime, width, height,
         image[:,:,0], image[:,:,2] = image[:,:,2], image[:,:,0].copy()
         images.append(image)
 
-    print("Finished loading video")
+    if images:
+        print("Finished loading video.")
+    else:
+        print("Error loading video (format not supported by OpenCV?).")
     return images, mtime_new
 
 
@@ -69,14 +73,19 @@ class Video:
                 self.width, self.height, self.fps,
                 self.interpolation_method)
 
+        self.images = images
+        self.mtime = new_mtime
         if images:
             self.images = images
-            self.mtime = new_mtime
             self.idx = 0
             self.last_frame_time = time.time()
 
     def apply(self, *args, **kwargs):
         self.reload_video()
+
+        if not self.images:
+            return np.zeros((self.height, self.width, 3))
+
         frame = self.images[self.idx].copy()
         if time.time() - self.last_frame_time > 1.0 / self.fps:
             self.idx = (self.idx + 1) % len(self.images)
