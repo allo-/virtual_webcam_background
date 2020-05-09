@@ -7,13 +7,21 @@ import time
 import numpy as np
 
 
-def reload_video(video_path, mtime, width, height,
+def reload_video(video_path, width, height,
+        target_fps, interpolation_method):
+
+    results = list(lazy_load_video(video_path, width, height,
+        target_fps, interpolation_method))
+
+    if not results:
+        return None
+
+    return results
+
+def lazy_load_video(video_path, width, height,
         target_fps, interpolation_method):
     # Do nothing, if the video is unchanged
     video_stat = os.stat(video_path)
-    if video_stat.st_mtime == mtime:
-        return None, mtime
-    mtime_new = video_stat.st_mtime
 
     print("Loading video: " + video_path)
 
@@ -28,7 +36,6 @@ def reload_video(video_path, mtime, width, height,
     if interpolation_method == "NEAREST":
         _interpolation_method = cv2.INTER_NEAREST
 
-    images = []
     frame_no = 0
     while cap.isOpened():
         success, frame = cap.read()
@@ -44,18 +51,14 @@ def reload_video(video_path, mtime, width, height,
 
         # BGR to RGB
         image[:,:,0], image[:,:,2] = image[:,:,2], image[:,:,0].copy()
-        images.append(image)
+        yield image
 
-    if images:
-        print("Finished loading video.")
-    else:
-        print("Error loading video (format not supported by OpenCV?).")
-    return images, mtime_new
+    print("Finished loading video:", video_path)
 
 
 class Video:
     def __init__(self, video_path, target_fps=10, interpolation_method="LINEAR",
-                 *args, **kwargs):
+                 lazy=True, *args, **kwargs):
         config = kwargs['config']
         self.width = config.get("width")
         self.height = config.get("height")
@@ -65,26 +68,52 @@ class Video:
         self.fps = target_fps
         self.interpolation_method = interpolation_method
         self.mtime = 0
+        self.images = []
 
+        self.lazy = lazy
         self.reload_video()
 
     def reload_video(self):
-        images, new_mtime = reload_video(self.video_path, self.mtime,
-                self.width, self.height, self.fps,
-                self.interpolation_method)
+        video_stat = os.stat(self.video_path)
+        if video_stat.st_mtime == self.mtime:
+            return
+        if self.lazy:
+            self.generator = lazy_load_video(self.video_path,
+                    self.width, self.height, self.fps,
+                    self.interpolation_method)
+            # Read the first frame, to be able to set the mtime
+            try:
+                self.images = [next(self.generator)]
+                self.idx = 0
+                self.last_frame_time = time.time()
+            except StopIteration:
+                print("Error loading video (format not supported by OpenCV?):",
+                      self.video_path)
+                self.images = []
+        else:
+            images = reload_video(self.video_path,
+                    self.width, self.height, self.fps,
+                    self.interpolation_method)
 
-        self.images = images
-        self.mtime = new_mtime
-        if images:
-            self.images = images
-            self.idx = 0
-            self.last_frame_time = time.time()
+            if images:
+                self.images = images
+                self.idx = 0
+                self.last_frame_time = time.time()
+        self.mtime = video_stat.st_mtime
 
     def apply(self, *args, **kwargs):
         self.reload_video()
 
         if not self.images:
             return np.zeros((self.height, self.width, 3))
+
+        if self.lazy:
+            # If the generator is not empty, grab the next frame
+            try:
+                image = next(self.generator)
+                self.images.append(image)
+            except StopIteration:
+                pass
 
         frame = self.images[self.idx].copy()
         if time.time() - self.last_frame_time > 1.0 / self.fps:
