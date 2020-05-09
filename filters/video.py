@@ -30,7 +30,7 @@ def lazy_load_video(video_path, width, height,
 
     if target_fps <= 0 or target_fps > fps:
         target_fps = fps
-    every_nth_frame = fps / target_fps
+    every_nth_frame = np.ceil(fps / target_fps)
 
     _interpolation_method = cv2.INTER_LINEAR
     if interpolation_method == "NEAREST":
