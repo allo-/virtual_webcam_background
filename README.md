@@ -140,10 +140,12 @@ The current filters and their options are:
 - `change_alpha`: Change the transparency of an image.
   - `change_alpha`: Alpha value to add (between `-255` and `255`)
   - `alpha_min`, `alpha_max`: Transparency levels to clip the resulting alpha value.
-- `single_color`: Change the image to grayscale and then color it with a given color.
+- `colorize`: Change the image to grayscale and then color it with a given color.
   - `r`, `g`, `b`: RGB values.
 - `color_filter`: Change the color levels by multiplying the RGB values with a factor between `0` and `255`.
   - `r`, `g`, `b`: The factors for the colors red/green/blue.
+- `solid_color`: Fill the image with a single color.
+  - `r`, `g`, `b`: RGB values.
 - `flip`: Flip the image horizontally or vertically.
   - `horizontal`: Flip horizontally.
   - `vertical`: Flip vertically.
@@ -152,9 +154,7 @@ The current filters and their options are:
   - `intensity`: Intensity how much darker/lighter the stripe is.
   - `speed`: Speed at which the stripes move across the image.
 - `chroma_key`: Convert a color to transparency (green screen effect).
-  - `r`: Red channel of the color.
-  - `g`: Green channel of the color.
-  - `b`: Blue channel of the color.
+  - `r`, `g`, `b`: RGB values.
   - `fuzz`: Factor for fuzzy matching of similar colors.
 
 ## Animations
