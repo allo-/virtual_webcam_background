@@ -117,6 +117,10 @@ input_tensor = graph.get_tensor_by_name(input_tensor_names[0])
 # Initialize layers
 layers = reload_layers(config)
 
+static_image = None
+for extension in ["jpg", "jpeg", "png"]:
+    if config['real_video_device'].lower().endswith(extension):
+        success, static_image = cap.read()
 
 def mainloop():
     global config, masks, layers, config_mtime
@@ -128,7 +132,10 @@ def mainloop():
         layers = reload_layers(config)
         config_mtime = config_mtime_new
 
-    success, frame = cap.read()
+    if static_image is not None:
+        success, frame = True, static_image
+    else:
+        success, frame = cap.read()
     if not success:
         print("Error getting a webcam image!")
         sys.exit(1)
