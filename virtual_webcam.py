@@ -98,9 +98,25 @@ fakewebcam = FakeWebcam(config.get("virtual_video_device"), width, height)
 
 output_stride = config.get("stride", 16)
 multiplier = config.get("multiplier", 0.5)
+model_type = config.get("model", "mobilenet")
 
-model_path = 'bodypix_mobilenet_float_{0:03d}_model-stride{1}'.format(
-    int(100 * multiplier), output_stride)
+if model_type == "resnet":
+    model_type = "resnet50"
+
+if model_type == "mobilenet":
+    print("Model: mobilenet (multiplier={multiplier}, stride={stride})".format(
+        multiplier=multiplier, stride=output_stride))
+    model_path = ('bodypix_mobilenet_float_{multiplier:03d}' +
+        '_model-stride{stride}').format(
+        multiplier=int(100 * multiplier), stride=output_stride)
+elif model_type == "resnet50":
+    print("Model: resnet50 (stride={stride})".format(
+        stride=output_stride))
+    model_path = 'bodypix_resnet50_float_model-stride{stride}'.format(
+        stride=output_stride)
+else:
+    print('Unknown model type. Use "mobilenet" or "resnet50".')
+    sys.exit(1)
 
 # Load the tensorflow model
 print("Loading model...")
@@ -158,19 +174,26 @@ def mainloop():
 
     resized_height, resized_width = resized_frame.shape[:2]
 
-    # Preprocessing for resnet
-    # m = np.array([-123.15, -115.90, -103.06])
-    # resized_frame = np.add(resized_frame, m)
+    # Preprocessing
+    if model_type == "mobilenet":
+        resized_frame = np.divide(resized_frame, 127.5)
+        resized_frame = np.subtract(resized_frame, 1.0)
+    elif model_type == "resnet50":
+        m = np.array([-123.15, -115.90, -103.06])
+        resized_frame = np.add(resized_frame, m)
+    else:
+        assert(False)
 
-    # Preprocessing for mobilenet
-    resized_frame = np.divide(resized_frame, 127.5)
-    resized_frame = np.subtract(resized_frame, 1.0)
     sample_image = resized_frame[tf.newaxis, ...]
 
     results = sess.run(output_tensor_names,
                        feed_dict={input_tensor: sample_image})
 
-    segment_logits = results[1]
+    if model_type == "mobilenet":
+        segment_logits = results[1]
+    elif model_type == "resnet50":
+        segment_logits = results[6]
+
     scaled_segment_scores = scale_and_crop_to_input_tensor_shape(
         segment_logits, input_height, input_width,
         padT, padB, padL, padR, True

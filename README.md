@@ -50,10 +50,12 @@ except for `width` and `height` as the webcam must be reinitialized to change th
   virtual backgrounds or image overlays.
 - `debug_show_mask`: Debug option to show the mask, that can be used to configure
   blur/dilate/erode correctly.
-- `multiplier`: Multiplier parameter of the model (0.5, 0.75 or 1.0). You need to download the
-  matching model when you change this parameter.
-- `output_stride`: Stride parameter of the model (16 or 8). You need to download the matching model
+- `model`: `mobilenet` (faster) or `resnet50` (more accurate). You need to download the matching model,
   when you change the parameter.
+- `multiplier`: Multiplier parameter of the mobilenet model (0.5, 0.75 or 1.0). You need to download the
+  matching model when you change this parameter.
+- `output_stride`: Stride parameter of the model (16 or 8 for `mobilenet` and 16 or 32 for `resnet50`).
+  You need to download the matching model when you change the parameter.
 - `internal_resolution`: Resolution factor (between 0.0 and 1.0) for the model input. Smaller is
   faster and less accurate. Note that 1.0 does not always give the best results.
 
@@ -176,16 +178,21 @@ using too long animations is not a good idea.
 
 ## Advanced
 
-You can try alternative neural network models by editing the source code.
-
 To download other models get the full `get-model.sh` script from [https://github.com/ajaichemmanam/simple\_bodypix\_python](https://github.com/ajaichemmanam/simple_bodypix_python) and run it with one of these combinations:
 
     ./get-model.sh bodypix/mobilenet/float/{025,050,075,100}/model-stride{8,16}
+    ./get-model.sh bodypix/resnet50/float/model-stride{16,32}
 
-Then edit the script and change `output_stride` and `internal_resolution` accordingly.
+Example config for `mobilenet`:
 
-You can also try the `resnet50` models, but then you will in addition need to change the preprocessing.
-The needed preprocessing for resnet50 is included as a comment in the source code.
+    - model: mobilenet
+	- multiplier: 0.5
+	- output_stride: 16
+
+Example config for `resnet50`:
+
+    - model: resnet50
+	- output_stride: 16
 
 ## Acknowledgements
 
