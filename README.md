@@ -159,19 +159,35 @@ The current filters and their options are:
   - `r`, `g`, `b`: RGB values.
   - `fuzz`: Factor for fuzzy matching of similar colors.
 
-## Animations
+## Videos
 
-Animations are a sequence of images in a folder. The script simply trys to load `image_name/*.*`
-when `image_name` is a folder. You need to make sure, that the folder only contains images and that
-the images are ordered correctly when they are ordered by their filename.
+If you have a video, you can use the `video` filter:
 
-Example for creating an animation from a short video:
+    - "empty": [["video", "my-video.mp4"]]
+
+## Image Sequences
+
+Another option are image sequences, that allow for example to use transparent PNGs.
+
+### Example
+
+Example config for loading an image sequence from the folder "animation" and playing it with
+5 frames per second:
+
+    - empty: [["image_sequence", "frames", 5]]
+
+The program tries to load `frames/*.*` and you need to make sure that the folder only contains images and that
+the images are ordered correctly when they are sorted by filename.
+
+Example for creating an image sequence from a short video and adding alpha transparency for a green screen effect
+using [ffmpeg](https://ffmpeg.org/) and [ImageMagick](https://imagemagick.org/):
 
     mkdir animation
     cd animation
-    ffmpeg -i ../animation.gif -vf fps=10 out%04d.png
+    ffmpeg -i ../animation.webm -vf fps=10 out%04d.png
+	mogrify -fuzz 10% -transparent 'rgb(0,129,27)' *
 
-When using the `ffmpeg` command, you can change the framerate of the video using the `fps` parameter.
+When using the `ffmpeg` command, you can change the output framerate using the `fps` parameter.
 
 Note that the script loads all images of an animation into RAM scaled to the resolution of your webcam, so
 using too long animations is not a good idea.
