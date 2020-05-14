@@ -82,6 +82,42 @@ class Move:
                            order=0)
 
 
+class Affine:
+    def __init__(self, matrix=[[1,0],[0,1]], offset=[0,0], relative=False,
+                 *args, **kwargs):
+
+        self.matrix = matrix
+        self.offset = offset
+        self.relative = relative
+
+        assert(len(matrix) == 2)
+        assert(len(matrix[0]) == 2)
+        assert(len(matrix[1]) == 2)
+        assert(len(offset) == 2)
+
+    def apply(self, *args, **kwargs):
+        frame = kwargs['frame']
+
+        matrix = np.zeros((3, 3))
+        matrix[0,:2] = self.matrix[0]
+        matrix[1,:2] = self.matrix[1]
+        matrix[2,2] = 1.0
+        offset = self.offset + [0]
+
+        if frame.shape[2] == 3:
+            # Add alpha channel
+            frame = np.append(frame,
+                    np.ones((frame.shape[0], frame.shape[1], 1)) * 255.0,
+                    axis=2)
+
+        frame = ndimage.affine_transform(frame,
+                       matrix=matrix,
+                       offset=offset,
+                       order=0)
+        return frame
+
+
 filters.register_filter("flip", Flip)
 filters.register_filter("zoom", Zoom)
 filters.register_filter("move", Move)
+filters.register_filter("affine", Affine)
