@@ -145,6 +145,7 @@ def mainloop():
     if config_mtime != config_mtime_new:
         config['width'] = width
         config['height'] = height
+        layers = []  # Allow filters to run their destructors
         layers = reload_layers(config)
         config_mtime = config_mtime_new
 
