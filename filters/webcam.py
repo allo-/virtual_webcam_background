@@ -9,11 +9,12 @@ class Webcam:
         self.cap = cv2.VideoCapture(device)
 
     def apply(self, *args, **kwargs):
-        shape = kwargs['frame'].shape
+        frame = kwargs['frame']
+        shape = frame.shape
 
-        success, frame = self.cap.read()
+        success, webcam_frame = self.cap.read()
         if success:
-            frame = frame[...,::-1]
+            frame = webcam_frame[...,::-1]
             frame = cv2.resize(frame, (shape[1], shape[0]))
         return np.array(frame)
 
