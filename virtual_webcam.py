@@ -192,17 +192,31 @@ def mainloop():
 
     if model_type == "mobilenet":
         segment_logits = results[1]
+        part_heatmaps = results[2]
     elif model_type == "resnet50":
         segment_logits = results[6]
+        part_heatmaps = results[5]
 
     scaled_segment_scores = scale_and_crop_to_input_tensor_shape(
         segment_logits, input_height, input_width,
         padT, padB, padL, padR, True
     )
 
+    scaled_heatmap_scores = scale_and_crop_to_input_tensor_shape(
+        part_heatmaps, input_height, input_width,
+        padT, padB, padL, padR, True
+    )
+
     mask = to_mask_tensor(scaled_segment_scores,
                           config.get("segmentation_threshold", 0.75))
     mask = np.reshape(mask, mask.shape[:2])
+
+    part_masks = to_mask_tensor(scaled_heatmap_scores, 0.999)
+    #part_masks = tf.dtypes.cast(part_masks, tf.int32)
+    #print(part_masks[:,:,1])
+    part_masks = np.array(part_masks)
+    # Move the mask index axis from index 2 to 0.
+    #part_masks = np.moveaxis(part_masks, 2, 0)
 
     # Average over the last N masks to reduce flickering
     # (at the cost of seeing afterimages)
@@ -248,7 +262,8 @@ def mainloop():
         elif layer_type == "empty":
             pass
 
-        layer_frame = filters.apply_filters(layer_frame, layer_filters)
+        layer_frame = filters.apply_filters(layer_frame, mask, part_masks,
+                                            layer_filters)
         if layer_frame.shape[2] == 4:
             transparency = layer_frame[:,:,3] / 255.0
             transparency = np.expand_dims(transparency, axis=2)
@@ -260,7 +275,10 @@ def mainloop():
     # Remove alpha channel
     frame = frame[:,:,:3]
 
-    if config.get("debug_show_mask", False):
+    if config.get("debug_show_mask") is not None:
+        mask_id = config.get("debug_show_mask", 42)
+        if mask_id >-1 and mask_id < 24:
+            mask = part_masks[:,:,mask_id] * 255.0
         frame[:,:,0] = mask
         frame[:,:,1] = mask
         frame[:,:,2] = mask

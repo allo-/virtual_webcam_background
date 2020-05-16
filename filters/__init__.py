@@ -36,14 +36,16 @@ def get_filters(config, filter_list):
             if not image_filter_class:
                 continue
 
-            image_filters.append(image_filter_class(config=config, *_args, **_kwargs))
+            image_filters.append(image_filter_class(config=config,
+                                                    *_args, **_kwargs))
     return image_filters
 
 
-def apply_filters(frame, image_filters):
+def apply_filters(frame, mask, part_masks, image_filters):
     for image_filter in image_filters:
         try:
-            frame = image_filter.apply(frame=frame)
+            frame = image_filter.apply(frame=frame, mask=mask,
+                                       part_masks=part_masks)
         except TypeError:
             # caused by a wrong number of arguments in the config
             pass
