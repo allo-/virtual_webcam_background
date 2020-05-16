@@ -66,3 +66,4 @@ from . import images
 from . import video
 from . import webcam
 from . import anonymize
+from . import halo
