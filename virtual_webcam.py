@@ -82,6 +82,10 @@ if config.get("width"):
 if config.get("height"):
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.get("height"))
 
+# Attempt to reduce the buffer size
+if not cap.set(cv2.CAP_PROP_BUFFERSIZE, 1):
+    print('Failed to reduce capture buffer size. Latency will be higher!')
+
 # Get the actual resolution (either webcam default or the configured one)
 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
