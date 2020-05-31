@@ -199,14 +199,21 @@ def mainloop():
             segment_logits = results[idx]
         elif name == "float_part_heatmaps:0":
             part_heatmaps = results[idx]
+        elif name == "float_heatmaps:0":
+            heatmaps = results[idx]
 
     scaled_segment_scores = scale_and_crop_to_input_tensor_shape(
         segment_logits, input_height, input_width,
         padT, padB, padL, padR, True
     )
 
-    scaled_heatmap_scores = scale_and_crop_to_input_tensor_shape(
+    scaled_part_heatmap_scores = scale_and_crop_to_input_tensor_shape(
         part_heatmaps, input_height, input_width,
+        padT, padB, padL, padR, True
+    )
+
+    scaled_heatmap_scores = scale_and_crop_to_input_tensor_shape(
+        heatmaps, input_height, input_width,
         padT, padB, padL, padR, True
     )
 
@@ -214,12 +221,10 @@ def mainloop():
                           config.get("segmentation_threshold", 0.75))
     mask = np.reshape(mask, mask.shape[:2])
 
-    part_masks = to_mask_tensor(scaled_heatmap_scores, 0.999)
-    #part_masks = tf.dtypes.cast(part_masks, tf.int32)
-    #print(part_masks[:,:,1])
+    part_masks = to_mask_tensor(scaled_part_heatmap_scores, 0.999)
     part_masks = np.array(part_masks)
-    # Move the mask index axis from index 2 to 0.
-    #part_masks = np.moveaxis(part_masks, 2, 0)
+    heatmap_masks = to_mask_tensor(scaled_heatmap_scores, 0.99)
+    heatmap_masks = np.array(heatmap_masks)
 
     # Average over the last N masks to reduce flickering
     # (at the cost of seeing afterimages)
@@ -266,7 +271,7 @@ def mainloop():
             pass
 
         layer_frame = filters.apply_filters(layer_frame, mask, part_masks,
-                                            layer_filters)
+                                            heatmap_masks, layer_filters)
         if layer_frame.shape[2] == 4:
             transparency = layer_frame[:,:,3] / 255.0
             transparency = np.expand_dims(transparency, axis=2)
@@ -279,9 +284,16 @@ def mainloop():
     frame = frame[:,:,:3]
 
     if config.get("debug_show_mask") is not None:
-        mask_id = config.get("debug_show_mask", 42)
+        mask_id = int(config.get("debug_show_mask", None))
         if mask_id >-1 and mask_id < 24:
             mask = part_masks[:,:,mask_id] * 255.0
+        frame[:,:,0] = mask
+        frame[:,:,1] = mask
+        frame[:,:,2] = mask
+    elif config.get("debug_show_heatmap") is not None:
+        heatmap_id = int(config.get("debug_show_heatmap", None))
+        if heatmap_id >-1 and heatmap_id < 17:
+            mask = heatmap_masks[:,:,heatmap_id] * 255.0
         frame[:,:,0] = mask
         frame[:,:,1] = mask
         frame[:,:,2] = mask
