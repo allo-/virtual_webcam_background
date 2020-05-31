@@ -5,9 +5,10 @@ from scipy import ndimage
 
 
 class Anonymize:
-    def __init__(self, blur=20, padding=10, *args, **kwargs):
+    def __init__(self, blur=20, padding=10, secure=False, *args, **kwargs):
         self.padding = padding
         self.blur = blur
+        self.secure = secure
 
     def apply(self, *args, **kwargs):
         frame = kwargs['frame']
@@ -25,7 +26,11 @@ class Anonymize:
         max_x = min(frame.shape[0], max_x + self.padding)
         max_y = min(frame.shape[1], max_y + self.padding)
 
-        face_mask[min_x:max_x,min_y:max_y] = 1.0
+        if np.isfinite([min_x, max_x, min_y, max_y]).all():
+            face_mask[min_x:max_x,min_y:max_y] = 1.0
+        elif self.secure:
+            # When no face is detected, anonymize everything
+            face_mask[:,:] = 1.0
 
         face_mask = np.expand_dims(face_mask, axis=2)
         if self.blur:
