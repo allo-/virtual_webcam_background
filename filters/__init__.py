@@ -64,3 +64,4 @@ from . import stripes
 from . import images
 from . import video
 from . import webcam
+from . import anonymize
