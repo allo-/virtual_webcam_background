@@ -5,16 +5,26 @@ from scipy import ndimage
 
 
 class Anonymize:
-    def __init__(self, blur=20, padding=10, secure=False, *args, **kwargs):
+    def __init__(self, blur=20, padding=10, secure=False, eyes_only=False,
+            *args, **kwargs):
         self.padding = padding
         self.blur = blur
         self.secure = secure
+        self.eyes_only = eyes_only
 
     def apply(self, *args, **kwargs):
         frame = kwargs['frame']
         part_masks = kwargs['part_masks']
+        heatmap_masks = kwargs['heatmap_masks']
 
-        face_mask = np.bitwise_or(part_masks[:,:,0], part_masks[:,:,1])
+        if self.eyes_only:
+            # left and right eye
+            face_mask = np.bitwise_or(heatmap_masks[:,:,1],
+                                      heatmap_masks[:,:,2])
+        else:
+            # left and right half of the face
+            face_mask = np.bitwise_or(part_masks[:,:,0], part_masks[:,:,1])
+
         objs = ndimage.find_objects(face_mask)
         min_x, min_y, max_x, max_y = np.inf, np.inf, -np.inf, -np.inf
         for obj in objs:
