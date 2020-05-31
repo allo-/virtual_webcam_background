@@ -194,12 +194,11 @@ def mainloop():
     results = sess.run(output_tensor_names,
                        feed_dict={input_tensor: sample_image})
 
-    if model_type == "mobilenet":
-        segment_logits = results[1]
-        part_heatmaps = results[2]
-    elif model_type == "resnet50":
-        segment_logits = results[6]
-        part_heatmaps = results[5]
+    for idx, name in enumerate(output_tensor_names):
+        if name == "float_segments:0":
+            segment_logits = results[idx]
+        elif name == "float_part_heatmaps:0":
+            part_heatmaps = results[idx]
 
     scaled_segment_scores = scale_and_crop_to_input_tensor_shape(
         segment_logits, input_height, input_width,
