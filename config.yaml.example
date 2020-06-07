@@ -6,7 +6,6 @@ virtual_video_device: "/dev/video0"
 real_video_device: "/dev/video1"
 average_masks: 3
 mjpeg: False
-mjpeg_fps: 20
 layers:
   - "empty": [["image", "background.jpg"]]
   - "foreground": []

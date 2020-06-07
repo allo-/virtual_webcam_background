@@ -39,6 +39,8 @@ except for `width` and `height` as the webcam must be reinitialized to change th
 
 - `width`: The input resolution width.
 - `height`: The input resolution height.
+- `fps`: The input framerate.
+- `mjpeg`: Use mjpeg as input format. This may be faster than the default format.
 - `segmentation_threshold`: The threshold for foreground / background segmentation.
 - `blur`: Blur factor for the mask to smooth the edges.
 - `dilate`: Number of pixels the mask is shrunk to remove spots.

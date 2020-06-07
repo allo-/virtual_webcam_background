@@ -75,16 +75,18 @@ for device in gpu_devices:
 
 # VideoCapture for the real webcam
 cap = cv2.VideoCapture(config.get("real_video_device"))
+
 if config.get("mjpeg"):
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     cap.set(cv2.CAP_PROP_FOURCC, fourcc)
-    cap.set(cv2.CAP_PROP_FPS, config.get("mjpeg_fps"))
 
-# Configure the resolution of the real webcam
+# Configure the resolution and framerate of the real webcam
 if config.get("width"):
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.get("width"))
 if config.get("height"):
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.get("height"))
+if config.get("fps"):
+    cap.set(cv2.CAP_PROP_FPS, config.get("fps"))
 
 # Attempt to reduce the buffer size
 if not cap.set(cv2.CAP_PROP_BUFFERSIZE, 1):
