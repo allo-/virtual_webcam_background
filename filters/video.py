@@ -1,8 +1,6 @@
 import cv2
 import filters
 import os
-import stat
-import glob
 import time
 import numpy as np
 
@@ -20,9 +18,6 @@ def reload_video(video_path, width, height,
 
 def lazy_load_video(video_path, width, height,
         target_fps, interpolation_method):
-    # Do nothing, if the video is unchanged
-    video_stat = os.stat(video_path)
-
     print("Loading video: " + video_path)
 
     cap = cv2.VideoCapture(video_path)

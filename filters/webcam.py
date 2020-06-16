@@ -5,7 +5,6 @@ import numpy as np
 
 class Webcam:
     def __init__(self, device, *args, **kwargs):
-        config = kwargs['config']
         self.cap = cv2.VideoCapture(device)
 
     def apply(self, *args, **kwargs):
