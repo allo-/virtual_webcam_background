@@ -3,6 +3,7 @@
 import sys
 import os
 import yaml
+import time
 
 import tensorflow as tf
 import tfjs_graph_converter.api as tfjs_api
@@ -310,7 +311,17 @@ def mainloop():
 if __name__ == "__main__":
     while True:
         try:
-            mainloop()
+            print("Testing webcam fps ...")
+            frames = 0
+            t = time.time()
+            while time.time() - t < 5:
+                success, frame = cap.read()
+                if not success:
+                    print("Error getting a webcam image!")
+                    sys.exit(1)
+                frames += 1
+            print("Webcam-FPS: {0}".format(frames / 5))
+            #mainloop()
         except KeyboardInterrupt:
             print("stopping.")
             break
