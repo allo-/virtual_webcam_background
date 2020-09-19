@@ -199,14 +199,16 @@ def mainloop():
     results = sess.run(output_tensor_names,
                        feed_dict={input_tensor: sample_image})
 
-    for idx, name in enumerate(output_tensor_names):
-        if name == "float_segments:0":
-            segment_logits = results[idx]
-        elif name == "float_part_heatmaps:0":
-            part_heatmaps = results[idx]
-        elif name == "float_heatmaps:0":
-            heatmaps = results[idx]
-
+    
+    if model_type == "mobilenet":
+        segment_logits = results[1]
+        part_heatmaps  = results[2]
+        heatmaps       = results[4]
+    else:
+        segment_logits = results[2]
+        part_heatmaps  = results[5]
+        heatmaps       = results[6]
+        
     scaled_segment_scores = scale_and_crop_to_input_tensor_shape(
         segment_logits, input_height, input_width,
         padT, padB, padL, padR, True
