@@ -238,7 +238,7 @@ def mainloop():
     masks = masks[:num_average_masks]
 
     mask = np.mean(masks, axis=0)
-    mask = (mask * 255).astype(np.uint8)
+    mask = (mask * 255).view('uint8')[:,:]
 
     dilate_value = config.get("dilate", 0)
     erode_value = config.get("erode", 0)
