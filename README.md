@@ -212,6 +212,11 @@ Example config for `resnet50`:
     - model: resnet50
 	- output_stride: 16
 
+## License
+
+- The project is licensed under GPLv3. A copy of the license can be found in the `LICENSE` file.
+- The the file `bodypix_functions.py` may be used unter the terms of the MIT license.
+
 ## Acknowledgements
 
 - The program is inspired by this [blog post](https://elder.dev/posts/open-source-virtual-background/) by Benjamin Elder.
