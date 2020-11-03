@@ -205,9 +205,9 @@ def mainloop():
         part_heatmaps  = results[2]
         heatmaps       = results[4]
     else:
-        segment_logits = results[2]
+        segment_logits = results[6]
         part_heatmaps  = results[5]
-        heatmaps       = results[6]
+        heatmaps       = results[2]
         
     scaled_segment_scores = scale_and_crop_to_input_tensor_shape(
         segment_logits, input_height, input_width,
