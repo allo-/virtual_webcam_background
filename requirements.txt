@@ -1,5 +1,5 @@
 tensorflow
-numpy
+numpy==1.18.5
 scipy
 pillow
 pyyaml
