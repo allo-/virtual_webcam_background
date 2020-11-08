@@ -10,7 +10,7 @@ See [virtual-webcam.com](https://www.virtual-webcam.com) for more information, i
 
 ## Installation
 
-The program needs python3 and is tested with python 3.7.
+The program needs python 3.5–3.8 and is tested with python 3.7.
 
 Install the requirements:
 
