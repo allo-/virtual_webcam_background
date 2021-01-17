@@ -1,0 +1,11 @@
+segmentation_threshold: 0.7
+blur: 5
+erode: 10
+dilate: 10
+virtual_video_device: "/dev/video2"
+real_video_device: "/dev/video0"
+average_masks: 2
+mjpeg: False
+layers:
+  - "empty": [["@MEDIA@", "@IMAGE@"]]
+  - "foreground": []
