@@ -14,7 +14,7 @@ cat <<EOF
              -s <name>     save profile
              -l <name>     load profile
 
-    --image overwites from config.yaml.template
+    --image overwrites from config.yaml.template
 
 
     put + or -sign to increment/decrement value
