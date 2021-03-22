@@ -31,8 +31,6 @@ the `virtual_webcam.py` script.
 
 If you have a Nvidia graphics card, you may want to install CUDA for better performance.
 
-## Some Notes
-
 ### Python version
 
 Due to the dependencies, the script does not work with `tf-nightly`. This means you need a
@@ -40,6 +38,32 @@ python version that is supported by the stable tensorflow packages. When your di
 for example, only ships python3.9, you need to install python3.8 yourself.  You can have a
 look at this [HowTo](https://linuxize.com/post/how-to-install-python-3-8-on-debian-10/)
 for installing Python 3.8 on Debian 10.
+
+## Troubleshooting
+
+### Problems opening the video device
+
+Problems like this
+
+```
+  File "./virtual_webcam.py", line 101, in <module>
+    fakewebcam = FakeWebcam(config.get("virtual_video_device"), width, height)
+  File "my_venv/lib/python3.8/site-packages/pyfakewebcam/pyfakewebcam.py", line 54, in __init__
+    fcntl.ioctl(self._video_device, _v4l2.VIDIOC_S_FMT, self._settings)
+OSError: [Errno 22] Invalid argument
+```
+
+mean in most cases, that you're using the wrong video devices. Try to play the stream from the real
+device using a media player. You can make sure you recognize the loopback device by choosing a high number
+when loading the kernel module:
+
+    modprobe v4l2loopback video_nr=10 exclusive_caps=1 # Creates /dev/video10
+
+Then your webcam will most likely have the device `/dev/video0` and the fake cam the device `/dev/video10`.
+
+### Problems using the fake camera in chromium-based browsers
+
+Make sure to load the `v4l2loopback` kernel module with the `exclusive_caps=1` parameter.
 
 ### Animated GIF support
 
