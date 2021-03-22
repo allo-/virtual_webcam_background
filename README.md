@@ -31,6 +31,20 @@ the `virtual_webcam.py` script.
 
 If you have a Nvidia graphics card, you may want to install CUDA for better performance.
 
+## Some Notes
+
+### Python version
+
+Due to the dependencies, the script does not work with `tf-nightly`. This means you need a
+python version that is supported by the stable tensorflow packages. When your distribution,
+for example, only ships python3.9, you need to install python3.8 yourself.  You can have a
+look at this [HowTo](https://linuxize.com/post/how-to-install-python-3-8-on-debian-10/)
+for installing Python 3.8 on Debian 10.
+
+### Animated GIF support
+
+Animated gifs do NOT work as a background with the `image` filter, but they work with the `video` filter.
+
 ## Configuration
 
 To configure the virtual webcam, edit `config.yaml`. Most options are applied instantly,
