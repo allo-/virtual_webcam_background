@@ -5,4 +5,4 @@ pillow
 pyyaml
 pyfakewebcam
 opencv-python
-tfjs-graph-converter==1.0.0
+tfjs-graph-converter==1.4.2
