@@ -5,7 +5,7 @@ import time
 import numpy as np
 
 
-def reload_video(video_path, width, height,
+def eager_load_video(video_path, width, height,
         target_fps, interpolation_method):
 
     results = list(lazy_load_video(video_path, width, height,
@@ -68,9 +68,9 @@ class Video:
         self.lazy = lazy
         self.reload_video()
 
-    def reload_video(self):
+    def reload_video(self, force_reload=False):
         video_stat = os.stat(self.video_path)
-        if video_stat.st_mtime == self.mtime:
+        if video_stat.st_mtime == self.mtime and not force_reload:
             return
         if self.lazy:
             self.generator = lazy_load_video(self.video_path,
@@ -78,15 +78,17 @@ class Video:
                     self.interpolation_method)
             # Read the first frame, to be able to set the mtime
             try:
-                self.images = [next(self.generator)]
-                self.idx = 0
-                self.last_frame_time = time.time()
+                self.image = next(self.generator)
+                self.last_frame_time = 0
             except StopIteration:
                 print("Error loading video (format not supported by OpenCV?):",
                       self.video_path)
-                self.images = []
+                self.image = None
+
+            if self.image is None:
+                return np.zeros((self.height, self.width, 3))
         else:
-            images = reload_video(self.video_path,
+            images = eager_load_video(self.video_path,
                     self.width, self.height, self.fps,
                     self.interpolation_method)
 
@@ -97,24 +99,29 @@ class Video:
         self.mtime = video_stat.st_mtime
 
     def apply(self, *args, **kwargs):
-        self.reload_video()
-
-        if not self.images:
-            return np.zeros((self.height, self.width, 3))
+        self.reload_video(force_reload=False)
 
         if self.lazy:
             # If the generator is not empty, grab the next frame
             try:
-                image = next(self.generator)
-                self.images.append(image)
+                if time.time() - self.last_frame_time > 1.0 / self.fps:
+                    self.image = next(self.generator)
+                    self.last_frame_time = time.time()
+            # Otherwise reload the video
             except StopIteration:
-                pass
+                self.reload_video(force_reload=True)
+                self.last_frame_time = time.time()
 
-        frame = self.images[self.idx].copy()
-        if time.time() - self.last_frame_time > 1.0 / self.fps:
-            self.idx = (self.idx + 1) % len(self.images)
-            self.last_frame_time = time.time()
-        return frame
+            return self.image
+
+        else:
+            if not self.images:
+                return np.zeros((self.height, self.width, 3))
+            frame = self.images[self.idx].copy()
+            if time.time() - self.last_frame_time > 1.0 / self.fps:
+                self.idx = (self.idx + 1) % len(self.images)
+                self.last_frame_time = time.time()
+            return frame
 
 
 filters.register_filter("video", Video)
