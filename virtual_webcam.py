@@ -18,6 +18,7 @@ from bodypix_functions import to_input_resolution_height_and_width
 from bodypix_functions import to_mask_tensor
 
 import filters
+import time
 
 
 def load_config(config_mtime, oldconfig={}):
@@ -147,8 +148,11 @@ for extension in ["jpg", "jpeg", "png"]:
     if config['real_video_device'].lower().endswith(extension):
         success, static_image = cap.read()
 
+frameNo = 0
+
 def mainloop():
-    global config, masks, layers, config_mtime
+    global config, masks, layers, config_mtime, frameNo
+    time_0_start = time.time()
 
     config, config_mtime_new = load_config(config_mtime, config)
     if config_mtime != config_mtime_new:
@@ -157,6 +161,8 @@ def mainloop():
         layers = []  # Allow filters to run their destructors
         layers = reload_layers(config)
         config_mtime = config_mtime_new
+
+    time_1_config = time.time()
 
     if static_image is not None:
         success, frame = True, static_image
@@ -168,6 +174,8 @@ def mainloop():
     # BGR to RGB
     frame = frame[...,::-1]
     frame = frame.astype(np.float)
+
+    time_2_capture = time.time()
 
     input_height, input_width = frame.shape[:2]
     internal_resolution = config.get("internal_resolution", 0.5)
@@ -184,6 +192,8 @@ def mainloop():
 
     resized_height, resized_width = resized_frame.shape[:2]
 
+    time_3_resize = time.time()
+
     # Preprocessing
     if model_type == "mobilenet":
         resized_frame = np.divide(resized_frame, 127.5)
@@ -196,9 +206,12 @@ def mainloop():
 
     sample_image = resized_frame[tf.newaxis, ...]
 
+    time_4_preprocess = time.time()
+
     results = sess.run(output_tensor_names,
                        feed_dict={input_tensor: sample_image})
 
+    time_5_network = time.time()
     
     if model_type == "mobilenet":
         segment_logits = results[1]
@@ -208,30 +221,50 @@ def mainloop():
         segment_logits = results[6]
         part_heatmaps  = results[5]
         heatmaps       = results[2]
+
+    time_6_result1 = time.time()
         
     scaled_segment_scores = scale_and_crop_to_input_tensor_shape(
         segment_logits, input_height, input_width,
         padT, padB, padL, padR, True
     )
+    
+    time_6_result2 = time.time()
 
-    scaled_part_heatmap_scores = scale_and_crop_to_input_tensor_shape(
-        part_heatmaps, input_height, input_width,
-        padT, padB, padL, padR, True
-    )
+    # not needed when doing only background replace
+    # scaled_part_heatmap_scores = scale_and_crop_to_input_tensor_shape(
+    #     part_heatmaps, input_height, input_width,
+    #     padT, padB, padL, padR, True
+    # )
 
-    scaled_heatmap_scores = scale_and_crop_to_input_tensor_shape(
-        heatmaps, input_height, input_width,
-        padT, padB, padL, padR, True
-    )
+    time_6_result3 = time.time()
+    
+    # not needed when doing only background replace
+    # scaled_heatmap_scores = scale_and_crop_to_input_tensor_shape(
+    #     heatmaps, input_height, input_width,
+    #     padT, padB, padL, padR, True
+    # )
+
+    time_6_result4 = time.time()
 
     mask = to_mask_tensor(scaled_segment_scores,
                           config.get("segmentation_threshold", 0.75))
+    
+    time_6_result5 = time.time()
+
     mask = np.reshape(mask, mask.shape[:2])
 
-    part_masks = to_mask_tensor(scaled_part_heatmap_scores, 0.999)
-    part_masks = np.array(part_masks)
-    heatmap_masks = to_mask_tensor(scaled_heatmap_scores, 0.99)
-    heatmap_masks = np.array(heatmap_masks)
+    time_6_result6 = time.time()
+
+    # not needed when doing only background replace
+    #part_masks = to_mask_tensor(scaled_part_heatmap_scores, 0.999)
+    #part_masks = np.array(part_masks)
+    #heatmap_masks = to_mask_tensor(scaled_heatmap_scores, 0.99)
+    #heatmap_masks = np.array(heatmap_masks)
+    part_masks = None
+    heatmap_masks = None
+
+    time_6_result = time.time()
 
     # Average over the last N masks to reduce flickering
     # (at the cost of seeing afterimages)
@@ -258,6 +291,8 @@ def mainloop():
         mask = cv2.blur(mask, (blur_value, blur_value))
 
     frame = np.append(frame, np.expand_dims(mask, axis=2), axis=2)
+
+    time_7_postprocess = time.time()
 
     input_frame = frame.copy()
     frame = np.zeros(input_frame.shape)
@@ -287,6 +322,8 @@ def mainloop():
         else:
             frame[:,:,:3] = layer_frame[:,:,:3].copy()
 
+    time_8_compose = time.time()
+
     # Remove alpha channel
     frame = frame[:,:,:3]
 
@@ -308,6 +345,27 @@ def mainloop():
     frame = frame.astype(np.uint8)
     fakewebcam.schedule_frame(frame)
 
+    time_9_show = time.time()
+    # Output the theoretical FPS for each processing stage
+    if (frameNo % 100) == 0:
+        print("Config {}".format(1/(time_1_config - time_0_start)))
+        print("Capture {}".format(1/(time_2_capture - time_1_config)))
+        print("Resize {}".format(1/(time_3_resize - time_2_capture)))
+        print("Preprocess {}".format(1/(time_4_preprocess - time_3_resize)))
+        print("Network {}".format(1/(time_5_network - time_4_preprocess)))
+        print("Result {}".format(1/(time_6_result - time_5_network)))
+        print("Result 1 {}".format(1/(time_6_result1 - time_5_network)))
+        print("Result 2 {}".format(1/(time_6_result2 - time_6_result1)))
+        #print("Result 3 {}".format(1/(time_6_result3 - time_6_result2)))
+        #print("Result 4 {}".format(1/(time_6_result4 - time_6_result3)))
+        print("Result 5 {}".format(1/(time_6_result5 - time_6_result4)))
+        print("Result 6 {}".format(1/(time_6_result6 - time_6_result5)))
+        print("Postprocess {}".format(1/(time_7_postprocess - time_6_result)))
+        print("Compose {}".format(1/(time_8_compose - time_7_postprocess)))
+        print("Show {}".format(1/(time_9_show - time_8_compose)))
+        print("Total {}".format(1/(time_9_show - time_0_start)))
+        print()
+    frameNo = frameNo + 1
 
 if __name__ == "__main__":
     while True:
