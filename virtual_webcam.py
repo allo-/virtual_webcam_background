@@ -8,6 +8,14 @@ import tensorflow as tf
 import tfjs_graph_converter.api as tfjs_api
 import tfjs_graph_converter.util as tfjs_util
 
+try:
+    import mediapipe as mp
+    classifier = mp.solutions.selfie_segmentation.SelfieSegmentation(
+            model_selection=1)
+    HAS_MEDIAPIPE = True
+except ImportError:
+    HAS_MEDIAPIPE = False
+
 import numpy as np
 import cv2
 from pyfakewebcam import FakeWebcam
@@ -123,21 +131,24 @@ elif model_type == "resnet50":
         stride=output_stride))
     model_path = 'bodypix_resnet50_float_model-stride{stride}'.format(
         stride=output_stride)
+elif model_type == "mediapipe" and HAS_MEDIAPIPE:
+    print("Model: mediapipe")
 else:
     print('Unknown model type. Use "mobilenet" or "resnet50".')
     sys.exit(1)
 
-# Load the tensorflow model
-print("Loading model...")
-graph = tfjs_api.load_graph_model(model_path)
-print("done.")
+if not model_type == "mediapipe":
+    # Load the tensorflow model
+    print("Loading model...")
+    graph = tfjs_api.load_graph_model(model_path)
+    print("done.")
 
-# Setup the tensorflow session
-sess = tf.compat.v1.Session(graph=graph)
+    # Setup the tensorflow session
+    sess = tf.compat.v1.Session(graph=graph)
 
-input_tensor_names = tfjs_util.get_input_tensors(graph)
-output_tensor_names = tfjs_util.get_output_tensors(graph)
-input_tensor = graph.get_tensor_by_name(input_tensor_names[0])
+    input_tensor_names = tfjs_util.get_input_tensors(graph)
+    output_tensor_names = tfjs_util.get_output_tensors(graph)
+    input_tensor = graph.get_tensor_by_name(input_tensor_names[0])
 
 # Initialize layers
 layers = reload_layers(config)
@@ -167,71 +178,77 @@ def mainloop():
         sys.exit(1)
     # BGR to RGB
     frame = frame[...,::-1]
-    frame = frame.astype(np.float)
-
-    input_height, input_width = frame.shape[:2]
-    internal_resolution = config.get("internal_resolution", 0.5)
-
-    target_height, target_width = to_input_resolution_height_and_width(
-        internal_resolution, output_stride, input_height, input_width)
-
-    padT, padB, padL, padR = calc_padding(frame, target_height, target_width)
-    resized_frame = tf.image.resize_with_pad(
-        frame,
-        target_height, target_width,
-        method=tf.image.ResizeMethod.BILINEAR
-    )
-
-    resized_height, resized_width = resized_frame.shape[:2]
-
-    # Preprocessing
-    if model_type == "mobilenet":
-        resized_frame = np.divide(resized_frame, 127.5)
-        resized_frame = np.subtract(resized_frame, 1.0)
-    elif model_type == "resnet50":
-        m = np.array([-123.15, -115.90, -103.06])
-        resized_frame = np.add(resized_frame, m)
+    if model_type == "mediapipe":
+        pass
+        mask = classifier.process(frame).segmentation_mask
+        part_masks = [mask]
+        heatmap_masks = [mask]
     else:
-        assert(False)
+        frame = frame.astype(np.float)
 
-    sample_image = resized_frame[tf.newaxis, ...]
+        input_height, input_width = frame.shape[:2]
+        internal_resolution = config.get("internal_resolution", 0.5)
 
-    results = sess.run(output_tensor_names,
-                       feed_dict={input_tensor: sample_image})
+        target_height, target_width = to_input_resolution_height_and_width(
+            internal_resolution, output_stride, input_height, input_width)
 
-    
-    if model_type == "mobilenet":
-        segment_logits = results[1]
-        part_heatmaps  = results[2]
-        heatmaps       = results[4]
-    else:
-        segment_logits = results[6]
-        part_heatmaps  = results[5]
-        heatmaps       = results[2]
-        
-    scaled_segment_scores = scale_and_crop_to_input_tensor_shape(
-        segment_logits, input_height, input_width,
-        padT, padB, padL, padR, True
-    )
+        padT, padB, padL, padR = calc_padding(frame, target_height, target_width)
+        resized_frame = tf.image.resize_with_pad(
+            frame,
+            target_height, target_width,
+            method=tf.image.ResizeMethod.BILINEAR
+        )
 
-    scaled_part_heatmap_scores = scale_and_crop_to_input_tensor_shape(
-        part_heatmaps, input_height, input_width,
-        padT, padB, padL, padR, True
-    )
+        resized_height, resized_width = resized_frame.shape[:2]
 
-    scaled_heatmap_scores = scale_and_crop_to_input_tensor_shape(
-        heatmaps, input_height, input_width,
-        padT, padB, padL, padR, True
-    )
+        # Preprocessing
+        if model_type == "mobilenet":
+            resized_frame = np.divide(resized_frame, 127.5)
+            resized_frame = np.subtract(resized_frame, 1.0)
+        elif model_type == "resnet50":
+            m = np.array([-123.15, -115.90, -103.06])
+            resized_frame = np.add(resized_frame, m)
+        else:
+            assert(False)
 
-    mask = to_mask_tensor(scaled_segment_scores,
-                          config.get("segmentation_threshold", 0.75))
-    mask = np.reshape(mask, mask.shape[:2])
+        sample_image = resized_frame[tf.newaxis, ...]
 
-    part_masks = to_mask_tensor(scaled_part_heatmap_scores, 0.999)
-    part_masks = np.array(part_masks)
-    heatmap_masks = to_mask_tensor(scaled_heatmap_scores, 0.99)
-    heatmap_masks = np.array(heatmap_masks)
+        results = sess.run(output_tensor_names,
+                           feed_dict={input_tensor: sample_image})
+
+
+        if model_type == "mobilenet":
+            segment_logits = results[1]
+            part_heatmaps  = results[2]
+            heatmaps       = results[4]
+        else:
+            segment_logits = results[6]
+            part_heatmaps  = results[5]
+            heatmaps       = results[2]
+
+        scaled_segment_scores = scale_and_crop_to_input_tensor_shape(
+            segment_logits, input_height, input_width,
+            padT, padB, padL, padR, True
+        )
+
+        scaled_part_heatmap_scores = scale_and_crop_to_input_tensor_shape(
+            part_heatmaps, input_height, input_width,
+            padT, padB, padL, padR, True
+        )
+
+        scaled_heatmap_scores = scale_and_crop_to_input_tensor_shape(
+            heatmaps, input_height, input_width,
+            padT, padB, padL, padR, True
+        )
+
+        mask = to_mask_tensor(scaled_segment_scores,
+                              config.get("segmentation_threshold", 0.75))
+        mask = np.reshape(mask, mask.shape[:2])
+
+        part_masks = to_mask_tensor(scaled_part_heatmap_scores, 0.999)
+        part_masks = np.array(part_masks)
+        heatmap_masks = to_mask_tensor(scaled_heatmap_scores, 0.99)
+        heatmap_masks = np.array(heatmap_masks)
 
     # Average over the last N masks to reduce flickering
     # (at the cost of seeing afterimages)
