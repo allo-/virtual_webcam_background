@@ -184,7 +184,7 @@ def mainloop():
         part_masks = [mask]
         heatmap_masks = [mask]
     else:
-        frame = frame.astype(np.float)
+        frame = frame.astype(float)
 
         input_height, input_width = frame.shape[:2]
         internal_resolution = config.get("internal_resolution", 0.5)
