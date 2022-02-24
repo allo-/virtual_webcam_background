@@ -5,8 +5,19 @@ import os
 import yaml
 
 import tensorflow as tf
+
+# since oct 2020, tfjs_graph_converter disables GPU acceleration.
+# this works around that problem by restoring it after the inclusion, see
+# https://github.com/patlevin/tfjs-to-tf/issues/35
+cuda_devices = os.getenv('CUDA_VISIBLE_DEVICES')
+
 import tfjs_graph_converter.api as tfjs_api
 import tfjs_graph_converter.util as tfjs_util
+
+if cuda_devices is None:
+    os.unsetenv('CUDA_VISIBLE_DEVICES')
+else:
+    os.putenv('CUDA_VISIBLE_DEVICES', cuda_devices)
 
 try:
     import mediapipe as mp
