@@ -73,7 +73,7 @@ Animated gifs do NOT work as a background with the `image` filter, but they work
 
 To configure the virtual webcam, edit `config.yaml`. Most options are applied instantly,
 except for `width` and `height` as the webcam must be reinitialized to change them and
-`multiplier` and `output_stride` as the model must be reloaded to apply them.
+`multiplier` and `stride` as the model must be reloaded to apply them.
 
 - `width`: The input resolution width.
 - `height`: The input resolution height.
@@ -94,7 +94,7 @@ except for `width` and `height` as the webcam must be reinitialized to change th
   when you change the parameter.
 - `multiplier`: Multiplier parameter of the mobilenet model (0.5, 0.75 or 1.0). You need to download the
   matching model when you change this parameter.
-- `output_stride`: Stride parameter of the model (16 or 8 for `mobilenet` and 16 or 32 for `resnet50`).
+- `stride`: Stride parameter of the model (16 or 8 for `mobilenet` and 16 or 32 for `resnet50`).
   You need to download the matching model when you change the parameter.
 - `internal_resolution`: Resolution factor (between 0.0 and 1.0) for the model input. Smaller is
   faster and less accurate. Note that 1.0 does not always give the best results.
@@ -243,12 +243,12 @@ Example config for `mobilenet`:
 
     - model: mobilenet
 	- multiplier: 0.5
-	- output_stride: 16
+	- stride: 16
 
 Example config for `resnet50`:
 
     - model: resnet50
-	- output_stride: 16
+	- stride: 16
 
 ## License
 
