@@ -253,7 +253,7 @@ Example config for `resnet50`:
 ## License
 
 - The project is licensed under GPLv3. A copy of the license can be found in the `LICENSE` file.
-- The the file `bodypix_functions.py` may be used unter the terms of the MIT license.
+- The the file `bodypix_functions.py` may be used under the terms of the MIT license.
 
 ## Acknowledgements
 
