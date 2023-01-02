@@ -198,6 +198,10 @@ The current filters and their options are:
 - `chroma_key`: Convert a color to transparency (green screen effect).
   - `r`, `g`, `b`: RGB values.
   - `fuzz`: Factor for fuzzy matching of similar colors.
+- `translate_to_head`: Translate the image to your head
+  - `anchor_point`: Translate the image to either the head or eyes
+  - `average_frames`: Take the average of some frames to avoid ripple
+
 
 ## Videos
 

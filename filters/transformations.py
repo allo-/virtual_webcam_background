@@ -81,6 +81,68 @@ class Move:
                            offset=[-vertical, -horizontal, 0],
                            order=0)
 
+class Translate_to_head:
+    @classmethod
+    def config(cls):
+        return {
+            "Anchor Point": {"type": "enum", "options": ["HEADS", "EYES"]},
+            "Average Frames": {"type": "integer", "range": [1, 100], "default": 5},
+            }
+    def __init__(self, anchor_point="HEADS", average_frames = 5, *args, **kwargs):
+        self.anchor_point = anchor_point
+        self.average_frames = average_frames
+
+        self._avg_points = []
+        self._avg_points_idx = 0
+
+    def apply(self, *args, **kwargs):
+        frame = kwargs['frame']
+
+        part_masks = kwargs['part_masks']
+        heatmap_masks = kwargs['heatmap_masks']
+
+        if self.anchor_point == "EYES":
+            # left and right eye
+            face_mask = np.bitwise_or(heatmap_masks[:,:,1],
+                                      heatmap_masks[:,:,2])
+        else:
+            # left and right half of the face
+            face_mask = np.bitwise_or(part_masks[:,:,0], part_masks[:,:,1])
+
+        objs = ndimage.find_objects(face_mask)
+        min_x, min_y, max_x, max_y = np.inf, np.inf, -np.inf, -np.inf
+        for obj in objs:
+            min_x, min_y = min(min_x, obj[0].start), min(min_y, obj[1].start)
+            max_x, max_y = max(max_x, obj[0].stop), max(max_y, obj[1].stop)
+
+        min_x = max(0, min_x)
+        min_y = max(0, min_y)
+        max_x = min(frame.shape[0], max_x)
+        max_y = min(frame.shape[1], max_y)
+
+        if np.isfinite([min_x, max_x, min_y, max_y]).all():
+            vertical = (max_x - min_x) / 2 + min_x
+            horizontal = (max_y - min_y) / 2 + min_y
+
+            if len(self._avg_points) <= self._avg_points_idx:
+                self._avg_points.extend([(vertical, horizontal)])
+            else:
+                self._avg_points[self._avg_points_idx] = (vertical, horizontal)
+            self._avg_points_idx = (self._avg_points_idx + 1) % self.average_frames
+
+            vertical = sum([x[0] for x in self._avg_points[0:self.average_frames]]) / self.average_frames
+            horizontal = sum([x[1] for x in self._avg_points[0:self.average_frames]]) / self.average_frames
+
+            vertical -=  frame.shape[0]/2
+            horizontal -=  frame.shape[1]/2
+        else:
+            vertical = 0
+            horizontal = 0
+
+        return ndimage.affine_transform(frame,
+                       matrix=[1, 1, 1],
+                       offset=[-vertical, -horizontal, 0],
+                       order=0)
 
 class Affine:
     def __init__(self, matrix=[[1,0],[0,1]], offset=[0,0], relative=False,
@@ -120,4 +182,5 @@ class Affine:
 filters.register_filter("flip", Flip)
 filters.register_filter("zoom", Zoom)
 filters.register_filter("move", Move)
+filters.register_filter("translate_to_head", Translate_to_head)
 filters.register_filter("affine", Affine)
